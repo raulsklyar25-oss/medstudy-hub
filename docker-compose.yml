@@ -1,0 +1,38 @@
+﻿version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: medstudy_backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - JWT_SECRET=super_secret_medstudy_key_981
+      - DB_DIALECT=sqlite
+      - DB_STORAGE=/app/data/database.sqlite
+    volumes:
+      - backend_data:/app/data
+      - backend_uploads:/app/uploads
+    restart: always
+
+  # To switch to PostgreSQL in production, uncomment the db service below
+  # and update the backend environment database URL configuration:
+  #
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: medstudy_db
+  #   restart: always
+  #   environment:
+  #     POSTGRES_DB: medstudy
+  #     POSTGRES_USER: meduser
+  #     POSTGRES_PASSWORD: medpassword
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pg_data:/var/lib/postgresql/data
+
+volumes:
+  backend_data:
+  backend_uploads:
+  # pg_data:
