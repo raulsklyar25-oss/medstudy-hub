@@ -42,8 +42,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  const API_URL = "http://localhost:5000/api";
+  const BACKEND_URL = "https://medstudy-hub-pawd.onrender.com";
+  const API_URL = `${BACKEND_URL}/api`;
   let socket = null;
+  
+  try {
+    socket = io(BACKEND_URL, {
+      reconnectionDelayMax: 10000,
+    });
+  } catch(e) {
+    console.warn("Socket.io failed to initialize");
+  }
 
   // --- APPLICATION STATE ---
   const state = {
