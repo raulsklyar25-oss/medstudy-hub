@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
@@ -66,7 +66,8 @@ const User = sequelize.define("User", {
   specialty: { type: DataTypes.STRING, defaultValue: "Лечебное дело" },
   studiedCardsCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   solvedCasesCount: { type: DataTypes.INTEGER, defaultValue: 0 },
-  completedTopicsCount: { type: DataTypes.INTEGER, defaultValue: 0 }
+  completedTopicsCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+  nameColor: { type: DataTypes.STRING, defaultValue: "#00f2fe" }
 });
 
 const ForumTopic = sequelize.define("ForumTopic", {
@@ -117,7 +118,7 @@ const authenticateToken = (req, res, next) => {
 // 1. Authentication
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const { username, email, password, specialty, avatar } = req.body;
+    const { username, email, password, specialty, avatar, nameColor } = req.body;
     if (!username || !email || !password) {
       return res.status(400).json({ error: "Please fill all required fields" });
     }
@@ -131,11 +132,12 @@ app.post("/api/auth/register", async (req, res) => {
       email,
       passwordHash,
       specialty: specialty || "Лечебное дело",
-      avatar: avatar || "🩺"
+      avatar: avatar || "🩺",
+      nameColor: nameColor || "#00f2fe"
     });
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token, user: { id: user.id, username: user.username, email: user.email, xp: user.xp, level: user.level, rank: user.rank, avatar: user.avatar, specialty: user.specialty } });
+    res.json({ token, user: { id: user.id, username: user.username, email: user.email, xp: user.xp, level: user.level, rank: user.rank, avatar: user.avatar, specialty: user.specialty, nameColor: user.nameColor } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -151,7 +153,7 @@ app.post("/api/auth/login", async (req, res) => {
     if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token, user: { id: user.id, username: user.username, email: user.email, xp: user.xp, level: user.level, rank: user.rank, avatar: user.avatar, specialty: user.specialty, studiedCardsCount: user.studiedCardsCount, solvedCasesCount: user.solvedCasesCount, completedTopicsCount: user.completedTopicsCount } });
+    res.json({ token, user: { id: user.id, username: user.username, email: user.email, xp: user.xp, level: user.level, rank: user.rank, avatar: user.avatar, specialty: user.specialty, nameColor: user.nameColor, studiedCardsCount: user.studiedCardsCount, solvedCasesCount: user.solvedCasesCount, completedTopicsCount: user.completedTopicsCount } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -169,7 +171,7 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
 
 app.post("/api/auth/update", authenticateToken, async (req, res) => {
   try {
-    const { xp, level, rank, avatar, studiedCardsCount, solvedCasesCount, completedTopicsCount } = req.body;
+    const { xp, level, rank, avatar, nameColor, studiedCardsCount, solvedCasesCount, completedTopicsCount } = req.body;
     const user = await User.findByPk(req.user.id);
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -177,12 +179,33 @@ app.post("/api/auth/update", authenticateToken, async (req, res) => {
     if (level !== undefined) user.level = level;
     if (rank !== undefined) user.rank = rank;
     if (avatar !== undefined) user.avatar = avatar;
+    if (nameColor !== undefined) user.nameColor = nameColor;
     if (studiedCardsCount !== undefined) user.studiedCardsCount = studiedCardsCount;
     if (solvedCasesCount !== undefined) user.solvedCasesCount = solvedCasesCount;
     if (completedTopicsCount !== undefined) user.completedTopicsCount = completedTopicsCount;
 
     await user.save();
     res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/users/search", authenticateToken, async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) return res.json({ users: [] });
+    
+    const { Op } = require("sequelize");
+    const users = await User.findAll({
+      where: {
+        username: { [Op.like]: `%${query}%` },
+        id: { [Op.ne]: req.user.id } // exclude self
+      },
+      attributes: ['id', 'username', 'avatar', 'specialty', 'level', 'rank', 'nameColor'],
+      limit: 10
+    });
+    res.json({ users });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -327,78 +350,131 @@ app.delete("/api/books/custom/:id", authenticateToken, async (req, res) => {
 
 // --- WEBSOCKET CHAT & DUEL EVENT HANDLING ---
 
-// Bot pools for real-time chat responses
-const botReplies = [
-  "Привет! Я как раз повторяю классификацию диуретиков. Что у тебя нового?",
-  "Интересно! А ты знал, что при инфаркте правого желудочка нитраты противопоказаны из-за падения преднагрузки?",
-  "Отличная гипотеза! Но давай сверимся с картой связей и учебником Грейса.",
-  "Коллега, патогенез этого синдрома невероятно глубок. Нам нужно обсудить это подробнее на форуме."
-];
+const connectedUsers = new Map(); // socket.id -> user object (id, username, nameColor)
+const duelQueue = []; // array of user objects waiting for duel
+const activeDuels = new Map(); // lobbyId -> duel state
 
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 
-  // 1. Social Real-Time Chat
-  socket.on("send_message", (data) => {
-    // data: { senderId, receiverId, text, senderName }
-    // Emit player's message back to room
-    socket.emit("receive_message", data);
-    
-    // Simulate virtual study buddy auto-typing and reply
-    const typingDuration = 1000 + Math.random() * 1500;
-    setTimeout(() => {
-      socket.emit("buddy_typing", { typing: true, buddyId: data.receiverId });
-      
-      setTimeout(() => {
-        socket.emit("buddy_typing", { typing: false, buddyId: data.receiverId });
-        
-        // Choose custom response
-        const text = botReplies[Math.floor(Math.random() * botReplies.length)];
-        socket.emit("receive_message", {
-          senderId: data.receiverId,
-          receiverId: data.senderId,
-          text,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        });
-      }, 1500);
-    }, typingDuration);
+  // Register user connection
+  socket.on("register_connection", (user) => {
+    if (!user || !user.id) return;
+    connectedUsers.set(socket.id, user);
+    socket.join(`user_${user.id}`); // private room for direct messages
+    console.log(`User ${user.username} registered on socket ${socket.id}`);
   });
 
-  // 2. Card Duels Socket Logic
-  socket.on("join_duel", (data) => {
-    // data: { username, opponentId }
-    // Setup a private lobby and push questions
-    socket.join(`duel_${socket.id}`);
+  // 1. Social Real-Time Chat (Direct Messages)
+  socket.on("send_message", (data) => {
+    // data: { receiverId, text, senderName, senderColor }
+    const sender = connectedUsers.get(socket.id);
+    if (!sender) return;
+
+    const messagePayload = {
+      senderId: sender.id,
+      receiverId: data.receiverId,
+      text: data.text,
+      senderName: sender.username,
+      senderColor: sender.nameColor,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    // Send to the receiver's private room
+    io.to(`user_${data.receiverId}`).emit("receive_message", messagePayload);
     
-    // Simulate opponent joining after 1s
-    setTimeout(() => {
-      socket.emit("duel_ready", {
-        lobbyId: `duel_${socket.id}`,
-        opponentName: data.opponentId === "neuro_mary" ? "Мария_Нейро" : "Дмитрий_ПатФиз",
-        questions: [
-          { q: "Какой нерв иннервирует мимическую мускулатуру?", options: ["Тройничный", "Лицевой", "Блуждающий"], answer: 1 },
-          { q: "Где синтезируется альбумин?", options: ["Почки", "Селезенка", "Печень"], answer: 2 },
-          { q: "Основной фактор онкотического давления крови?", options: ["Глобулины", "Альбумины", "Ионы Na+"], answer: 1 }
-        ]
+    // Send confirmation back to sender
+    messagePayload.isSelf = true;
+    socket.emit("receive_message", messagePayload);
+  });
+
+  // 2. Real-Time Card Duels Matchmaking
+  socket.on("join_matchmaking", () => {
+    const user = connectedUsers.get(socket.id);
+    if (!user) return;
+
+    // Check if someone else is waiting
+    const opponentIndex = duelQueue.findIndex(u => u.id !== user.id);
+    
+    if (opponentIndex !== -1) {
+      // Match found!
+      const opponent = duelQueue.splice(opponentIndex, 1)[0];
+      const lobbyId = `duel_${Date.now()}`;
+      
+      // Setup duel state
+      activeDuels.set(lobbyId, {
+        player1: user,
+        player2: opponent,
+        score1: 0,
+        score2: 0,
+        currentQ: 0
       });
-    }, 1000);
+
+      // Join both to the lobby room
+      socket.join(lobbyId);
+      io.sockets.sockets.get(opponent.socketId)?.join(lobbyId);
+
+      // Define questions (randomly picked from a pool, here we just send 5)
+      const duelQuestions = [
+        { term: "Ацетилхолин", cat: "Фарма", def: "Медиатор парасимпатической НС." },
+        { term: "Нефрон", cat: "Анатомия", def: "Структурно-функциональная единица почки." },
+        { term: "Апоптоз", cat: "Патфизиология", def: "Запрограммированная клеточная гибель." },
+        { term: "Лейкопения", cat: "Гематология", def: "Снижение количества лейкоцитов." },
+        { term: "Сепсис", cat: "Инфекции", def: "Генерализация локальной инфекции." }
+      ];
+
+      // Notify both players
+      io.to(lobbyId).emit("duel_match_found", {
+        lobbyId,
+        questions: duelQuestions,
+        player1: { id: user.id, username: user.username, color: user.nameColor },
+        player2: { id: opponent.id, username: opponent.username, color: opponent.nameColor }
+      });
+      
+    } else {
+      // Nobody waiting, join queue
+      user.socketId = socket.id;
+      duelQueue.push(user);
+      socket.emit("matchmaking_status", { status: "waiting", message: "Ожидание противника..." });
+      
+      // Timeout after 30 seconds if no match
+      setTimeout(() => {
+        const idx = duelQueue.findIndex(u => u.socketId === socket.id);
+        if (idx !== -1) {
+          duelQueue.splice(idx, 1);
+          socket.emit("matchmaking_timeout", { message: "Не удалось найти противника. Попробуйте позже." });
+        }
+      }, 30000);
+    }
   });
 
   // Handle player answer in duel
   socket.on("submit_duel_answer", (data) => {
-    // data: { lobbyId, score, questionIndex, correct }
-    // Simulating opponent answering as well
-    setTimeout(() => {
-      const oppCorrect = Math.random() > 0.3;
-      socket.emit("opponent_duel_answer", {
-        questionIndex: data.questionIndex,
-        correct: oppCorrect,
-        scoreDelta: oppCorrect ? 15 : 0
-      });
-    }, 800 + Math.random() * 1200);
+    // data: { lobbyId, isCorrect }
+    const user = connectedUsers.get(socket.id);
+    const duel = activeDuels.get(data.lobbyId);
+    if (!user || !duel) return;
+
+    if (user.id === duel.player1.id && data.isCorrect) duel.score1++;
+    if (user.id === duel.player2.id && data.isCorrect) duel.score2++;
+
+    // Broadcast update to lobby
+    io.to(data.lobbyId).emit("duel_score_update", {
+      player1Score: duel.score1,
+      player2Score: duel.score2,
+      lastAnswerer: user.username,
+      isCorrect: data.isCorrect
+    });
   });
 
   socket.on("disconnect", () => {
+    const user = connectedUsers.get(socket.id);
+    if (user) {
+      // Remove from queue if they were waiting
+      const idx = duelQueue.findIndex(u => u.id === user.id);
+      if (idx !== -1) duelQueue.splice(idx, 1);
+    }
+    connectedUsers.delete(socket.id);
     console.log("Client disconnected:", socket.id);
   });
 });

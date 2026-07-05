@@ -3190,6 +3190,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const selectedAvatarBtn = document.querySelector("#avatar-selector .avatar-opt.active");
       const avatarEmoji = selectedAvatarBtn ? selectedAvatarBtn.textContent.trim() : "🧑‍⚕️";
       
+      const selectedColorBtn = document.querySelector("#namecolor-selector .color-opt.active");
+      const nameColor = selectedColorBtn ? selectedColorBtn.getAttribute("data-color") : "#00f2fe";
+      
       const username = (usernameInput && usernameInput.value.trim()) ? usernameInput.value.trim() : "Студент";
       const specialty = (specialtyInput && specialtyInput.value.trim()) ? specialtyInput.value.trim() : "Лечебное дело";
       const motto = (mottoInput && mottoInput.value.trim()) ? mottoInput.value.trim() : "Учеба и только учеба!";
@@ -3198,6 +3201,7 @@ document.addEventListener("DOMContentLoaded", () => {
       state.userProfile.specialty = specialty;
       state.userProfile.motto = motto;
       state.userProfile.avatar = avatarEmoji;
+      state.userProfile.nameColor = nameColor;
       state.userProfile.level = 1;
       state.userProfile.xp = 0;
       state.userProfile.casesSolved = 0;
@@ -3249,6 +3253,17 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   });
 
+  document.querySelectorAll("#namecolor-selector .color-opt").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll("#namecolor-selector .color-opt").forEach(b => {
+        b.classList.remove("active");
+        b.style.border = "2px solid transparent";
+      });
+      btn.classList.add("active");
+      btn.style.border = "2px solid #fff";
+    };
+  });
+
   // Edit Profile button
   const editProfileBtn = document.getElementById("btn-edit-profile");
   if (editProfileBtn) {
@@ -3272,7 +3287,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const levelTitle = document.getElementById("prof-level-title");
     
     if (avatarEmoji) avatarEmoji.textContent = state.userProfile.avatar;
-    if (username) username.textContent = state.userProfile.username;
+    if (username) {
+      username.textContent = state.userProfile.username;
+      if (state.userProfile.nameColor) {
+        username.style.color = state.userProfile.nameColor;
+        username.style.textShadow = `0 0 10px ${state.userProfile.nameColor}88`;
+      }
+    }
     if (specialty) specialty.textContent = state.userProfile.specialty;
     if (motto) motto.textContent = state.userProfile.motto;
     if (levelNum) levelNum.textContent = state.level;
