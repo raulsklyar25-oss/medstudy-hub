@@ -270,6 +270,27 @@ document.addEventListener("DOMContentLoaded", () => {
     setup3DAnatomy();
     setupQuestListeners();
     initConceptMap();
+    
+    // Fetch real users from backend to replace bots
+    fetch(`${API_URL}/users/search`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.users && data.users.length > 0) {
+          botUsersDatabase.length = 0; // clear bots
+          data.users.forEach(u => {
+            botUsersDatabase.push({
+              id: u.id,
+              name: u.username,
+              avatar: u.avatar || "🧑‍⚕️",
+              specialty: u.specialty || "Врач",
+              status: u.rank || "Интерн",
+              color: u.nameColor || "#00f2fe",
+              online: true
+            });
+          });
+        }
+      })
+      .catch(e => console.warn("Could not fetch real users:", e));
   }
 
   // Populate dynamic select dropdowns with all systems from data.js

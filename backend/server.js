@@ -191,19 +191,18 @@ app.post("/api/auth/update", authenticateToken, async (req, res) => {
   }
 });
 
-app.get("/api/users/search", authenticateToken, async (req, res) => {
+app.get("/api/users/search", async (req, res) => {
   try {
     const { query } = req.query;
-    if (!query) return res.json({ users: [] });
-    
     const { Op } = require("sequelize");
+    let whereClause = {};
+    if (query) {
+      whereClause = { username: { [Op.like]: `%${query}%` } };
+    }
     const users = await User.findAll({
-      where: {
-        username: { [Op.like]: `%${query}%` },
-        id: { [Op.ne]: req.user.id } // exclude self
-      },
+      where: whereClause,
       attributes: ['id', 'username', 'avatar', 'specialty', 'level', 'rank', 'nameColor'],
-      limit: 10
+      limit: 50
     });
     res.json({ users });
   } catch (err) {
