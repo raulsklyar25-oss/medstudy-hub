@@ -2610,14 +2610,14 @@ body {
 
 .map-tree-viewport {
   flex: 1;
-  overflow: auto;
+  overflow: hidden; /* Hide scrollbars to enable absolute pan/zoom */
   cursor: grab;
   padding: 40px 10px;
   min-height: 400px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  transition: transform 0.1s ease-out;
+  position: relative;
 }
 
 .map-tree-viewport:active {
@@ -2790,6 +2790,45 @@ body {
   box-shadow: 0 0 22px rgba(244, 63, 94, 0.6);
 }
 
+.tree-node-card.cardiovascular-node:hover {
+  background: rgba(10, 30, 50, 0.99);
+  border-color: #00f2fe;
+  color: #00f2fe;
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.5);
+}
+.tree-node-card.cardiovascular-node.active-node {
+  border-color: #00f2fe;
+  color: #00f2fe;
+  background: rgba(0, 242, 254, 0.2);
+  box-shadow: 0 0 22px rgba(0, 242, 254, 0.6);
+}
+
+.tree-node-card.cardio-node:hover {
+  background: rgba(45, 10, 20, 0.99);
+  border-color: #f43f5e;
+  color: #fda4af;
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.5);
+}
+.tree-node-card.cardio-node.active-node {
+  border-color: #f43f5e;
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.2);
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.6);
+}
+
+.tree-node-card.endocrine-node:hover {
+  background: rgba(40, 10, 45, 0.99);
+  border-color: #ec4899;
+  color: #fbcfe8;
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.5);
+}
+.tree-node-card.endocrine-node.active-node {
+  border-color: #ec4899;
+  color: #fbcfe8;
+  background: rgba(236, 72, 153, 0.2);
+  box-shadow: 0 0 22px rgba(236, 72, 153, 0.6);
+}
+
 .tree-node-card.skeletal-node:hover {
   background: rgba(30, 35, 45, 0.99);
   border-color: #e2e8f0;
@@ -2805,8 +2844,8 @@ body {
 
 /* Tree container transition for zoom scale */
 .tree {
-  transform-origin: top center;
-  transition: transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: center center;
+  transition: none; /* Removed transition for ultra-smooth instant pan response */
 }
 
 /* Responsive adjustments */

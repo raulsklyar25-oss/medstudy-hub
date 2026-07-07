@@ -2984,27 +2984,96 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- CONCEPT MAP FUNCTIONS ---
+  function openConceptArticleModal(node) {
+    const modal = document.getElementById("map-article-modal");
+    const body = document.getElementById("map-article-body");
+    if (!modal || !body) return;
+
+    body.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+        <span style="font-size: 32px;">📖</span>
+        <div>
+          <h2 style="margin: 0; color: var(--accent-cyan); font-family: var(--font-heading); font-size: 26px;">${node.name}</h2>
+          <span style="font-size: 12px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px;">Научная статья • MedStudy Hub</span>
+        </div>
+      </div>
+      
+      <div class="article-content" style="color: rgba(255,255,255,0.9); line-height: 1.6; font-size: 15px;">
+        <section style="margin-bottom: 20px;">
+          <h4 style="color: var(--accent-pink); margin-bottom: 8px; font-size: 16px;">Введение и определение</h4>
+          <p>${node.desc}</p>
+        </section>
+        
+        <section style="margin-bottom: 20px;">
+          <h4 style="color: var(--accent-pink); margin-bottom: 8px; font-size: 16px;">Анатомо-гистологическая характеристика</h4>
+          <p>В структуре человеческого организма данный элемент занимает важное анатомическое положение. Микроструктурно он состоит из дифференцированных клеточных популяций, адаптированных под выполнение специфических функций. Тесное взаимодействие с окружающими сосудистыми и нервными путями обеспечивает интеграцию элемента в общую схему жизнедеятельности.</p>
+        </section>
+        
+        <section style="margin-bottom: 20px;">
+          <h4 style="color: var(--accent-pink); margin-bottom: 8px; font-size: 16px;">Физиология и метаболические процессы</h4>
+          <p>Функциональная роль заключается в непрерывном поддержании локального гомеостаза. На молекулярном уровне протекают ферментативные реакции, регулирующие биохимический баланс. Элемент участвует в мембранном транспорте веществ, рецепторной сигнализации и адаптивных ответах на гуморальные и нервные стимулы.</p>
+        </section>
+
+        <section style="margin-bottom: 25px;">
+          <h4 style="color: var(--accent-pink); margin-bottom: 8px; font-size: 16px;">Клиническое значение и патологии</h4>
+          <p>Любые деструктивные изменения, гипоксия или генетические аномалии данного звена приводят к развитию тяжелых синдромов. Клиническая верификация патологии проводится с помощью биохимических маркеров, ультразвуковых, рентгенологических и гистологических исследований. Терапия направлена на восстановление метаболической функции и предотвращение гибели клеток.</p>
+        </section>
+      </div>
+      
+      <div style="display: flex; gap: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 20px;">
+        ${node.organ ? `<button class="btn btn-primary" id="btn-article-modal-3d" style="margin: 0; padding: 10px 20px;">Открыть в 3D Атласе</button>` : ''}
+        <button class="btn btn-outline" id="btn-article-modal-close" style="margin: 0; padding: 10px 20px;">Закрыть статью</button>
+      </div>
+    `;
+
+    modal.classList.remove("hidden");
+    setTimeout(() => {
+      modal.style.opacity = "1";
+      modal.querySelector("div").style.transform = "scale(1)";
+    }, 10);
+
+    const closeBtn = document.getElementById("btn-article-modal-close");
+    if (closeBtn) {
+      closeBtn.onclick = () => closeConceptArticleModal();
+    }
+    const go3d = document.getElementById("btn-article-modal-3d");
+    if (go3d && node.organ) {
+      go3d.onclick = () => {
+        closeConceptArticleModal();
+        navigateWiki("organ", node.organ, node.tab || "anatomy");
+      };
+    }
+  }
+
+  function closeConceptArticleModal() {
+    const modal = document.getElementById("map-article-modal");
+    if (!modal) return;
+    modal.style.opacity = "0";
+    modal.querySelector("div").style.transform = "scale(0.9)";
+    setTimeout(() => {
+      modal.classList.add("hidden");
+    }, 300);
+  }
+
   function renderConceptTree(node, systemId) {
     const li = document.createElement("li");
     const card = document.createElement("div");
     
-    // System color mapping class
-    let systemClass = "";
-    if (systemId === "nervous") systemClass = "nervous-node";
-    else if (systemId === "respiratory") systemClass = "respiratory-node";
-    else if (systemId === "digestive") systemClass = "digestive-node";
-    else if (systemId === "urinary") systemClass = "urinary-node";
-    else if (systemId === "skeletal") systemClass = "skeletal-node";
+    let systemClass = systemId + "-node";
     
     card.className = `tree-node-card ${systemClass}`;
     card.textContent = node.name;
     
-    card.onclick = () => {
-      // Highlight active node
+    card.onclick = (e) => {
+      if (state.mapDragMoved) {
+        state.mapDragMoved = false;
+        return;
+      }
       document.querySelectorAll(".tree-node-card").forEach(c => c.classList.remove("active-node"));
       card.classList.add("active-node");
       
       showConceptDetail(node);
+      openConceptArticleModal(node);
     };
     
     li.appendChild(card);
@@ -3050,13 +3119,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("concept-tree-root-container");
     if (!container) return;
     
-    let activeSystemId = "cardio";
+    let activeSystemId = "cardiovascular";
     let mapScale = 1.0;
+    let panX = 0;
+    let panY = 0;
     
+    function applyTransform() {
+      container.style.transform = `translate(${panX}px, ${panY}px) scale(${mapScale})`;
+    }
+
     function buildMap() {
       container.innerHTML = "";
       mapScale = 1.0;
-      container.style.transform = "scale(1.0)";
+      panX = 0;
+      panY = 0;
+      container.style.transform = "translate(0px, 0px) scale(1.0)";
       
       const mapData = MedData.conceptMaps[activeSystemId];
       if (!mapData || !mapData.root) return;
@@ -3065,12 +3142,10 @@ document.addEventListener("DOMContentLoaded", () => {
       ul.appendChild(renderConceptTree(mapData.root, activeSystemId));
       container.appendChild(ul);
       
-      // Hide detail card
       const detailCard = document.getElementById("map-detail-card");
       if (detailCard) detailCard.classList.add("hidden");
     }
     
-    // Wire system selectors
     document.querySelectorAll(".map-selector-btn").forEach(btn => {
       btn.onclick = () => {
         document.querySelectorAll(".map-selector-btn").forEach(b => b.classList.remove("active"));
@@ -3081,13 +3156,8 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     });
     
-    // Zoom controls logic (with mouse wheel support!)
     const viewport = document.getElementById("map-tree-viewport");
     if (viewport) {
-      function applyScale() {
-        container.style.transform = `scale(${mapScale})`;
-      }
-      
       const zoomInBtn = document.getElementById("map-zoom-in-btn");
       const zoomOutBtn = document.getElementById("map-zoom-out-btn");
       const resetBtn = document.getElementById("map-reset-btn");
@@ -3095,25 +3165,26 @@ document.addEventListener("DOMContentLoaded", () => {
       if (zoomInBtn) {
         zoomInBtn.onclick = () => {
           mapScale = Math.min(2.0, mapScale + 0.1);
-          applyScale();
+          applyTransform();
         };
       }
       
       if (zoomOutBtn) {
         zoomOutBtn.onclick = () => {
           mapScale = Math.max(0.3, mapScale - 0.1);
-          applyScale();
+          applyTransform();
         };
       }
       
       if (resetBtn) {
         resetBtn.onclick = () => {
           mapScale = 1.0;
-          applyScale();
+          panX = 0;
+          panY = 0;
+          applyTransform();
         };
       }
       
-      // Mouse wheel zoom listener
       viewport.addEventListener("wheel", (e) => {
         e.preventDefault();
         const zoomStep = 0.05;
@@ -3122,11 +3193,10 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           mapScale = Math.max(0.3, mapScale - zoomStep);
         }
-        applyScale();
+        applyTransform();
       }, { passive: false });
     }
     
-    // Wire close button
     const closeBtn = document.getElementById("map-detail-close");
     if (closeBtn) {
       closeBtn.onclick = () => {
@@ -3134,19 +3204,27 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".tree-node-card").forEach(c => c.classList.remove("active-node"));
       };
     }
+    const modalCloseBtn = document.getElementById("map-article-close-btn");
+    if (modalCloseBtn) {
+      modalCloseBtn.onclick = () => {
+        closeConceptArticleModal();
+      };
+    }
     
-    // Drag to pan viewport
     if (viewport) {
       let isDown = false;
-      let startX, startY, scrollLeft, scrollTop;
+      let startClientX = 0, startClientY = 0;
+      let startX = 0, startY = 0;
       
       viewport.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
         isDown = true;
+        state.mapDragMoved = false;
         viewport.style.cursor = "grabbing";
-        startX = e.pageX - viewport.offsetLeft;
-        startY = e.pageY - viewport.offsetTop;
-        scrollLeft = viewport.scrollLeft;
-        scrollTop = viewport.scrollTop;
+        startClientX = e.clientX;
+        startClientY = e.clientY;
+        startX = e.clientX - panX;
+        startY = e.clientY - panY;
       });
       
       viewport.addEventListener("mouseleave", () => {
@@ -3161,13 +3239,15 @@ document.addEventListener("DOMContentLoaded", () => {
       
       viewport.addEventListener("mousemove", (e) => {
         if (!isDown) return;
+        const dx = Math.abs(e.clientX - startClientX);
+        const dy = Math.abs(e.clientY - startClientY);
+        if (dx > 5 || dy > 5) {
+          state.mapDragMoved = true;
+        }
         e.preventDefault();
-        const x = e.pageX - viewport.offsetLeft;
-        const y = e.pageY - viewport.offsetTop;
-        const walkX = (x - startX) * 1.5;
-        const walkY = (y - startY) * 1.5;
-        viewport.scrollLeft = scrollLeft - walkX;
-        viewport.scrollTop = scrollTop - walkY;
+        panX = e.clientX - startX;
+        panY = e.clientY - startY;
+        applyTransform();
       });
     }
     
