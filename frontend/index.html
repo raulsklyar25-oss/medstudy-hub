@@ -797,6 +797,7 @@
 
                <button class="btn btn-outline btn-xs w-full" id="btn-edit-profile" style="font-size: 11px; padding: 6px 12px; margin-bottom: 8px;">✏️ Редактировать профиль</button>
                <button class="btn btn-outline btn-xs w-full" id="btn-logout" style="font-size: 11px; padding: 6px 12px; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.4);">🚪 Выйти из аккаунта</button>
+               <button class="btn btn-outline btn-xs w-full" id="btn-admin-panel" style="font-size: 11px; padding: 6px 12px; margin-top: 8px; color: var(--accent-cyan); border-color: rgba(0, 242, 254, 0.4); display: flex; align-items: center; justify-content: center; gap: 5px;">👑 Панель Создателя</button>
              </div>
 
             <!-- Right: Stats & Badges -->
@@ -831,6 +832,106 @@
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <!-- ADMIN PANEL VIEW -->
+        <section id="view-admin" class="app-view hidden">
+          <div class="view-header">
+            <h2>👑 Панель Создателя (Администратор)</h2>
+            <p class="view-subtitle">Мониторинг базы данных в реальном времени: зарегистрированные аккаунты, сетевая активность, связи дружбы и логи системных событий.</p>
+          </div>
+
+          <!-- Stats Widgets Grid -->
+          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; margin-bottom: 25px;">
+            <div class="glass-panel" style="padding: 15px; text-align: center; border-radius: 10px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.15);">
+              <div style="font-size: 20px;">👥</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 5px;" id="admin-stat-users">-</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">Аккаунтов</div>
+            </div>
+            <div class="glass-panel" style="padding: 15px; text-align: center; border-radius: 10px; background: rgba(0, 255, 136, 0.05); border: 1px solid rgba(0, 255, 136, 0.15);">
+              <div style="font-size: 20px;">⚡</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 5px;" id="admin-stat-online">-</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">В сети</div>
+            </div>
+            <div class="glass-panel" style="padding: 15px; text-align: center; border-radius: 10px; background: rgba(255, 0, 127, 0.05); border: 1px solid rgba(255, 0, 127, 0.15);">
+              <div style="font-size: 20px;">🤝</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 5px;" id="admin-stat-friends">-</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">Связей дружбы</div>
+            </div>
+            <div class="glass-panel" style="padding: 15px; text-align: center; border-radius: 10px; background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.15);">
+              <div style="font-size: 20px;">📝</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 5px;" id="admin-stat-topics">-</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">Тем форума</div>
+            </div>
+            <div class="glass-panel" style="padding: 15px; text-align: center; border-radius: 10px; background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.15);">
+              <div style="font-size: 20px;">💬</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 5px;" id="admin-stat-replies">-</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">Ответов</div>
+            </div>
+            <div class="glass-panel" style="padding: 15px; text-align: center; border-radius: 10px; background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.15);">
+              <div style="font-size: 20px;">📚</div>
+              <div style="font-size: 24px; font-weight: 800; color: #fff; margin-top: 5px;" id="admin-stat-books">-</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">Книг загружено</div>
+            </div>
+          </div>
+
+          <!-- Main Admin Panels Layout -->
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+            
+            <!-- Left Panel: User Accounts Manager & Friendships -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- User Accounts Manager -->
+              <div class="glass-panel" style="padding: 25px; border-radius: 12px; background: rgba(13, 20, 38, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);">
+                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 20px; color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">👥 База пользователей</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: var(--accent-cyan);">
+                        <th style="padding: 8px;">Аватар</th>
+                        <th style="padding: 8px;">Имя пользователя</th>
+                        <th style="padding: 8px;">ВУЗ / Специальность</th>
+                        <th style="padding: 8px;">Уровень / XP</th>
+                        <th style="padding: 8px; text-align: center;">Действие</th>
+                      </tr>
+                    </thead>
+                    <tbody id="admin-table-users">
+                      <!-- Rendered dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Friendship Connections Network -->
+              <div class="glass-panel" style="padding: 25px; border-radius: 12px; background: rgba(13, 20, 38, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);">
+                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 20px; color: var(--accent-cyan); display: flex; align-items: center; gap: 8px;">🤝 Сеть дружеских связей</h3>
+                <div style="max-height: 200px; overflow-y: auto;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: left;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: var(--accent-pink);">
+                        <th style="padding: 8px;">Пользователь 1</th>
+                        <th style="padding: 8px;">Взаимность</th>
+                        <th style="padding: 8px;">Пользователь 2</th>
+                        <th style="padding: 8px;">Дата создания</th>
+                      </tr>
+                    </thead>
+                    <tbody id="admin-table-friendships">
+                      <!-- Rendered dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Panel: Live System Events Logs -->
+            <div class="glass-panel" style="padding: 25px; border-radius: 12px; background: rgba(13, 20, 38, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; height: 580px;">
+              <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 15px; color: var(--accent-pink); display: flex; align-items: center; gap: 8px;">⚙️ Системный лог (Live)</h3>
+              <div id="admin-logs-container" style="flex: 1; overflow-y: auto; background: rgba(3, 8, 20, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 6px; padding: 12px; font-family: monospace; font-size: 11px; color: #a5b4fc; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Logs rendered here -->
+              </div>
+              <button class="btn btn-outline w-full" id="btn-admin-refresh-logs" style="margin-top: 15px; padding: 10px; font-size: 12px;">🔄 Обновить логи</button>
+            </div>
+
           </div>
         </section>
 

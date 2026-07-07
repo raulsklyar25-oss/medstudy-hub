@@ -270,6 +270,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setup3DAnatomy();
     setupQuestListeners();
     initConceptMap();
+    initAdminPanel();
     
     // Fetch real users from backend to replace bots
     fetch(`${API_URL}/users/search`)
@@ -5714,18 +5715,180 @@ document.addEventListener("DOMContentLoaded", () => {
       chatHistory: []
     });
     
-    // Save to localStorage
     saveFriendsToStorage();
-    
     renderFriendsList();
     showToast(`✅ ${user.name} добавлен(а) в друзья!`, "success");
     
-    // Hide search results
     const searchResults = document.getElementById("friend-search-results");
     if (searchResults) { searchResults.style.display = "none"; searchResults.innerHTML = ""; }
     const searchInput = document.getElementById("friend-search-input");
     if (searchInput) searchInput.value = "";
+
+    // Sync with backend database
+    const token = safeStorage.getItem("medstudy_jwt_token");
+    if (token) {
+      fetch(`${API_URL}/social/friends`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ friendId: userId })
+      })
+      .then(res => res.json())
+      .catch(e => console.warn("Не удалось синхронизировать дружбу с сервером.", e));
+    }
   }
+
+  // Creator Admin Panel controllers
+  function initAdminPanel() {
+    const btnAdminPanel = document.getElementById("btn-admin-panel");
+    if (btnAdminPanel) {
+      btnAdminPanel.onclick = () => {
+        const passcode = prompt("Введите мастер-код создателя для доступа к панели:");
+        if (passcode === "0981") {
+          state.adminPasscode = passcode;
+          navigateToView("admin");
+          loadAdminDashboardData();
+        } else if (passcode !== null) {
+          showToast("❌ Неверный мастер-код!", "error");
+        }
+      };
+    }
+
+    const btnRefreshLogs = document.getElementById("btn-admin-refresh-logs");
+    if (btnRefreshLogs) {
+      btnRefreshLogs.onclick = () => {
+        loadAdminLogs();
+      };
+    }
+  }
+
+  function loadAdminDashboardData() {
+    const passcode = state.adminPasscode;
+    if (!passcode) return;
+
+    fetch(`${API_URL}/admin/stats?passcode=${passcode}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) return;
+        document.getElementById("admin-stat-users").textContent = data.usersCount;
+        document.getElementById("admin-stat-online").textContent = data.onlineCount;
+        document.getElementById("admin-stat-friends").textContent = data.friendshipsCount;
+        document.getElementById("admin-stat-topics").textContent = data.topicsCount;
+        document.getElementById("admin-stat-replies").textContent = data.repliesCount;
+        document.getElementById("admin-stat-books").textContent = data.booksCount;
+      });
+
+    fetch(`${API_URL}/admin/users?passcode=${passcode}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) return;
+        const tbody = document.getElementById("admin-table-users");
+        if (!tbody) return;
+        tbody.innerHTML = data.users.map(u => `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <td style="padding: 10px; font-size: 20px;">${u.avatar || "👤"}</td>
+            <td style="padding: 10px; font-weight: 700; color: ${u.nameColor || '#fff'};">${u.username}</td>
+            <td style="padding: 10px; color: var(--text-muted);">${u.specialty || "Не указано"}</td>
+            <td style="padding: 10px; color: var(--accent-cyan);">Уровень ${u.level} (${u.xp} XP)</td>
+            <td style="padding: 10px; text-align: center; display: flex; gap: 6px; justify-content: center;">
+              <button class="btn btn-outline btn-xs" onclick="adminGrantXP('${u.id}', '${u.username}')" style="padding: 4px 8px; font-size: 10px; cursor: pointer;">⚡ XP</button>
+              <button class="btn btn-outline btn-xs" onclick="adminDeleteUser('${u.id}', '${u.username}')" style="padding: 4px 8px; font-size: 10px; cursor: pointer; color: var(--accent-rose); border-color: rgba(244,63,94,0.3);">🗑️ Удалить</button>
+            </td>
+          </tr>
+        `).join("");
+      });
+
+    fetch(`${API_URL}/admin/friendships?passcode=${passcode}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) return;
+        const tbody = document.getElementById("admin-table-friendships");
+        if (!tbody) return;
+        tbody.innerHTML = data.friendships.map(f => `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-color);">
+            <td style="padding: 8px; font-weight: 600;">${f.user1Name}</td>
+            <td style="padding: 8px; color: var(--accent-pink); font-size: 11px;">🤝 Взаимно</td>
+            <td style="padding: 8px; font-weight: 600;">${f.user2Name}</td>
+            <td style="padding: 8px; color: var(--text-muted); font-size: 11px;">${new Date(f.createdAt).toLocaleDateString()}</td>
+          </tr>
+        `).join("");
+      });
+
+    loadAdminLogs();
+  }
+
+  function loadAdminLogs() {
+    const passcode = state.adminPasscode;
+    if (!passcode) return;
+
+    fetch(`${API_URL}/admin/logs?passcode=${passcode}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) return;
+        const container = document.getElementById("admin-logs-container");
+        if (!container) return;
+        if (data.logs.length === 0) {
+          container.innerHTML = `<div style="color: var(--text-muted); text-align: center; padding-top: 50px;">Нет системных логов за текущую сессию.</div>`;
+          return;
+        }
+        container.innerHTML = data.logs.map(log => `
+          <div style="margin-bottom: 4px;">
+            <span style="color: var(--accent-cyan); font-weight: 600;">[${log.time}]</span>
+            <span style="color: #fff;">${log.text}</span>
+          </div>
+        `).join("");
+      });
+  }
+
+  window.adminGrantXP = function(userId, username) {
+    const passcode = state.adminPasscode;
+    if (!passcode) return;
+
+    const val = prompt(`Укажите новый уровень для пользователя ${username}:`);
+    if (val === null || val.trim() === "") return;
+    const level = parseInt(val);
+    const xpVal = prompt(`Укажите XP для уровня ${level}:`);
+    if (xpVal === null || xpVal.trim() === "") return;
+    const xp = parseInt(xpVal);
+
+    fetch(`${API_URL}/admin/users/${userId}/xp?passcode=${passcode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ xp, level })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast(`⚡ XP и Уровень успешно обновлены для ${username}!`);
+        loadAdminDashboardData();
+      } else {
+        showToast("Ошибка при изменении параметров.", "error");
+      }
+    });
+  };
+
+  window.adminDeleteUser = function(userId, username) {
+    const passcode = state.adminPasscode;
+    if (!passcode) return;
+
+    const ok = confirm(`Вы уверены, что хотите НАВСЕГДА удалить аккаунт ${username}?`);
+    if (!ok) return;
+
+    fetch(`${API_URL}/admin/users/${userId}?passcode=${passcode}`, {
+      method: "DELETE"
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        showToast(`🗑️ Пользователь ${username} успешно удален.`);
+        loadAdminDashboardData();
+      } else {
+        showToast("Ошибка при удалении пользователя.", "error");
+      }
+    });
+  };
 
   function renderSearchResults(results) {
     const container = document.getElementById("friend-search-results");

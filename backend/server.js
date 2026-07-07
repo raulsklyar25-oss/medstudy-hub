@@ -96,6 +96,12 @@ const CustomBook = sequelize.define("CustomBook", {
   subjectId: { type: DataTypes.STRING, defaultValue: "other" }
 });
 
+const Friendship = sequelize.define("Friendship", {
+  id: { type: DataTypes.UUID, defaultValue: Sequelize.UUIDV4, primaryKey: true },
+  user1Id: { type: DataTypes.UUID, allowNull: false },
+  user2Id: { type: DataTypes.UUID, allowNull: false }
+});
+
 // Relationships
 ForumTopic.hasMany(ForumReply, { foreignKey: "topicId", onDelete: "CASCADE" });
 ForumReply.belongsTo(ForumTopic, { foreignKey: "topicId" });
@@ -360,6 +366,159 @@ app.delete("/api/books/custom/:id", authenticateToken, async (req, res) => {
 });
 
 
+// --- ADMIN & SOCIAL FRIENDS ENDPOINTS ---
+
+const serverLogs = [];
+function logEvent(text) {
+  serverLogs.unshift({ time: new Date().toLocaleTimeString(), text });
+  if (serverLogs.length > 50) serverLogs.pop();
+  console.log("[ADMIN LOG]", text);
+}
+
+// Friendship Sync API
+app.post("/api/social/friends", authenticateToken, async (req, res) => {
+  try {
+    const { friendId } = req.body;
+    if (!friendId) return res.status(400).json({ error: "Friend ID required" });
+
+    const u1 = req.user.id < friendId ? req.user.id : friendId;
+    const u2 = req.user.id < friendId ? friendId : req.user.id;
+
+    const exists = await Friendship.findOne({ where: { user1Id: u1, user2Id: u2 } });
+    if (exists) {
+      return res.json({ success: true, message: "Friendship already exists" });
+    }
+
+    await Friendship.create({ user1Id: u1, user2Id: u2 });
+    logEvent(`User ${req.user.username} befriended User ID ${friendId}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/social/friends", authenticateToken, async (req, res) => {
+  try {
+    const { Op } = require("sequelize");
+    const friendships = await Friendship.findAll({
+      where: {
+        [Op.or]: [
+          { user1Id: req.user.id },
+          { user2Id: req.user.id }
+        ]
+      }
+    });
+
+    const friendIds = friendships.map(f => f.user1Id === req.user.id ? f.user2Id : f.user1Id);
+    const friends = await User.findAll({
+      where: { id: { [Op.in]: friendIds } },
+      attributes: ["id", "username", "avatar", "specialty", "level", "rank", "nameColor"]
+    });
+
+    res.json({ friends });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin Middleware
+const checkAdmin = (req, res, next) => {
+  const passcode = req.headers["x-admin-passcode"] || req.query.passcode;
+  if (passcode === "0981") {
+    next();
+  } else {
+    res.status(403).json({ error: "Access Denied: Invalid Master Passcode" });
+  }
+};
+
+app.get("/api/admin/stats", checkAdmin, async (req, res) => {
+  try {
+    const usersCount = await User.count();
+    const friendshipsCount = await Friendship.count();
+    const topicsCount = await ForumTopic.count();
+    const repliesCount = await ForumReply.count();
+    const booksCount = await CustomBook.count();
+    
+    res.json({
+      usersCount,
+      friendshipsCount,
+      topicsCount,
+      repliesCount,
+      booksCount,
+      onlineCount: connectedUsers.size
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/admin/users", checkAdmin, async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ["id", "username", "email", "xp", "level", "rank", "avatar", "specialty", "nameColor", "createdAt"]
+    });
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/admin/friendships", checkAdmin, async (req, res) => {
+  try {
+    const friendships = await Friendship.findAll();
+    const users = await User.findAll({ attributes: ["id", "username"] });
+    const userMap = {};
+    users.forEach(u => { userMap[u.id] = u.username; });
+
+    const list = friendships.map(f => ({
+      id: f.id,
+      user1Name: userMap[f.user1Id] || `Unknown (${f.user1Id.substring(0, 8)})`,
+      user2Name: userMap[f.user2Id] || `Unknown (${f.user2Id.substring(0, 8)})`,
+      createdAt: f.createdAt
+    }));
+
+    res.json({ friendships: list });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/admin/users/:id/xp", checkAdmin, async (req, res) => {
+  try {
+    const { xp, level } = req.body;
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (xp !== undefined) user.xp = parseInt(xp);
+    if (level !== undefined) user.level = parseInt(level);
+
+    await user.save();
+    logEvent(`Admin updated XP/Level for user ${user.username}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/api/admin/users/:id", checkAdmin, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const username = user.username;
+    await user.destroy();
+    logEvent(`Admin deleted user ${username} (${req.params.id})`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/admin/logs", checkAdmin, (req, res) => {
+  res.json({ logs: serverLogs });
+});
+
+
 // --- WEBSOCKET CHAT & DUEL EVENT HANDLING ---
 
 const connectedUsers = new Map(); // socket.id -> user object (id, username, nameColor)
@@ -377,7 +536,7 @@ io.on("connection", (socket) => {
     }
     connectedUsers.set(socket.id, user);
     socket.join(`user_${user.id}`); // private room for direct messages
-    console.log(`[SOCKET SUCCESS] User ${user.username} (${user.id}) registered on socket ${socket.id}`);
+    logEvent(`User ${user.username} (${user.id}) logged online`);
 
     // Send the list of currently online users to this client
     const onlineIds = Array.from(connectedUsers.values()).map(u => u.id);
@@ -389,12 +548,12 @@ io.on("connection", (socket) => {
 
   // 1. Social Real-Time Chat (Direct Messages)
   socket.on("send_message", (data) => {
-    console.log(`[SOCKET] Received send_message from socket ${socket.id} to receiver ${data.receiverId}: "${data.text}"`);
     const sender = connectedUsers.get(socket.id);
     if (!sender) {
       console.warn(`[SOCKET WARN] send_message rejected: socket ${socket.id} is not registered!`);
       return;
     }
+    logEvent(`User ${sender.username} sent DM to User ID ${data.receiverId}`);
 
     const messagePayload = {
       senderId: sender.id,
