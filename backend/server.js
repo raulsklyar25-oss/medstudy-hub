@@ -452,20 +452,106 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Handle player answer in duel
+  // Direct Friend Multiplayer Invites
+  socket.on("invite_friend", (data) => {
+    // data: { receiverId, type }
+    const sender = connectedUsers.get(socket.id);
+    if (!sender) return;
+    io.to(`user_${data.receiverId}`).emit("invite_received", {
+      senderId: sender.id,
+      senderName: sender.username,
+      type: data.type
+    });
+  });
+
+  socket.on("accept_invite", (data) => {
+    // data: { senderId, type }
+    const receiver = connectedUsers.get(socket.id);
+    if (!receiver) return;
+    
+    let senderSocketId = null;
+    let senderUser = null;
+    for (const [sId, u] of connectedUsers.entries()) {
+      if (u.id === data.senderId) {
+        senderSocketId = sId;
+        senderUser = u;
+        break;
+      }
+    }
+    
+    if (!senderSocketId) {
+      socket.emit("invite_error", { message: "Отправитель приглашения не в сети." });
+      return;
+    }
+
+    const lobbyId = `lobby_${Date.now()}`;
+    socket.join(lobbyId);
+    
+    const senderSocket = io.sockets.sockets.get(senderSocketId);
+    if (senderSocket) {
+      senderSocket.join(lobbyId);
+    }
+
+    const lobbyState = {
+      lobbyId,
+      type: data.type,
+      players: {
+        [data.senderId]: { id: data.senderId, name: senderUser.username, score: 0, currentIdx: 0 },
+        [receiver.id]: { id: receiver.id, name: receiver.username, score: 0, currentIdx: 0 }
+      }
+    };
+    activeDuels.set(lobbyId, lobbyState);
+
+    io.to(lobbyId).emit("game_started", {
+      lobbyId,
+      type: data.type,
+      player1: { id: data.senderId, name: senderUser.username },
+      player2: { id: receiver.id, name: receiver.username }
+    });
+  });
+
+  socket.on("decline_invite", (data) => {
+    // data: { senderId }
+    const receiver = connectedUsers.get(socket.id);
+    if (!receiver) return;
+    io.to(`user_${data.senderId}`).emit("invite_declined", {
+      receiverName: receiver.username
+    });
+  });
+
+  // Direct game action sync
+  socket.on("game_action", (data) => {
+    // data: { lobbyId, actionType: 'answer', isCorrect }
+    const player = connectedUsers.get(socket.id);
+    const lobby = activeDuels.get(data.lobbyId);
+    if (!player || !lobby) return;
+
+    const pState = lobby.players[player.id];
+    if (!pState) return;
+
+    if (data.isCorrect) pState.score++;
+    pState.currentIdx++;
+
+    io.to(data.lobbyId).emit("game_state_update", {
+      lobbyId: data.lobbyId,
+      players: lobby.players
+    });
+  });
+
+  // Handle player answer in matchmaking duel
   socket.on("submit_duel_answer", (data) => {
     // data: { lobbyId, isCorrect }
     const user = connectedUsers.get(socket.id);
     const duel = activeDuels.get(data.lobbyId);
     if (!user || !duel) return;
 
-    if (user.id === duel.player1.id && data.isCorrect) duel.score1++;
-    if (user.id === duel.player2.id && data.isCorrect) duel.score2++;
+    if (duel.player1 && user.id === duel.player1.id && data.isCorrect) duel.score1++;
+    if (duel.player2 && user.id === duel.player2.id && data.isCorrect) duel.score2++;
 
     // Broadcast update to lobby
     io.to(data.lobbyId).emit("duel_score_update", {
-      player1Score: duel.score1,
-      player2Score: duel.score2,
+      player1Score: duel.score1 || 0,
+      player2Score: duel.score2 || 0,
       lastAnswerer: user.username,
       isCorrect: data.isCorrect
     });

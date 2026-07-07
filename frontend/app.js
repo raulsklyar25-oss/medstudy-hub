@@ -3467,7 +3467,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnDuel) {
       btnDuel.onclick = () => {
         if (state.activeFriendId) {
-          startCardDuel(state.activeFriendId);
+          if (socket && socket.connected) {
+            socket.emit("invite_friend", { receiverId: state.activeFriendId, type: "duel" });
+            showToast("Вызов на дуэль отправлен другу. Ожидайте ответа...", "success");
+          } else {
+            startCardDuel(state.activeFriendId);
+          }
         }
       };
     }
@@ -3476,7 +3481,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnCoop) {
       btnCoop.onclick = () => {
         if (state.activeFriendId) {
-          startCoopQuiz(state.activeFriendId);
+          if (socket && socket.connected) {
+            socket.emit("invite_friend", { receiverId: state.activeFriendId, type: "coop" });
+            showToast("Приглашение на совместный тест отправлено другу. Ожидайте ответа...", "success");
+          } else {
+            startCoopQuiz(state.activeFriendId);
+          }
         }
       };
     }
@@ -3606,7 +3616,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <span>${friend.name}</span>
             <span class="${statusClass}"></span>
           </div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">${friend.statusText}</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">${friend.statusText || friend.specialty || "В сети"}</div>
         </div>
       `;
 
@@ -3726,6 +3736,50 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           typingIndicator.classList.add("hidden");
         }
+      }
+    });
+
+    socket.off("invite_received").on("invite_received", (data) => {
+      const typeStr = data.type === "duel" ? "Дуэль на карточках" : "Совместный тест";
+      const accept = confirm(`Игрок ${data.senderName} приглашает вас сыграть: ${typeStr}. Принять приглашение?`);
+      if (accept) {
+        socket.emit("accept_invite", { senderId: data.senderId, type: data.type });
+      } else {
+        socket.emit("decline_invite", { senderId: data.senderId });
+      }
+    });
+
+    socket.off("invite_declined").on("invite_declined", (data) => {
+      showToast(`Пользователь ${data.receiverName} отклонил приглашение.`, "warning");
+    });
+
+    socket.off("invite_error").on("invite_error", (data) => {
+      showToast(data.message, "error");
+    });
+
+    socket.off("game_started").on("game_started", (data) => {
+      state.activeLobbyId = data.lobbyId;
+      state.activeLobbyType = data.type;
+      
+      showToast("Игра началась!", "success");
+
+      const typingIndicator = document.getElementById("chat-typing-indicator");
+      if (typingIndicator) typingIndicator.classList.add("hidden");
+
+      if (data.type === "duel") {
+        const partner = data.player1.id === state.userProfile.id ? data.player2 : data.player1;
+        startCardDuelMultiplayer(partner.id, partner.name);
+      } else {
+        const partner = data.player1.id === state.userProfile.id ? data.player2 : data.player1;
+        startCoopQuizMultiplayer(partner.id, partner.name);
+      }
+    });
+
+    socket.off("game_state_update").on("game_state_update", (data) => {
+      if (state.activeLobbyType === "duel" && state.duelState && state.duelState.active) {
+        updateDuelStateMultiplayer(data.players);
+      } else if (state.activeLobbyType === "coop" && state.coopState && state.coopState.active) {
+        updateCoopStateMultiplayer(data.players);
       }
     });
   }
@@ -3953,6 +4007,16 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-duel-fail").disabled = true;
     document.getElementById("btn-duel-success").disabled = true;
 
+    if (ds.isMultiplayer) {
+      if (socket && socket.connected) {
+        socket.emit("game_action", {
+          lobbyId: ds.lobbyId,
+          isCorrect: userKnows
+        });
+      }
+      return;
+    }
+
     if (userKnows) {
       ds.scoreUser++;
       document.getElementById("duel-score-user").textContent = ds.scoreUser;
@@ -4108,8 +4172,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const correctIdx = qObj.ans;
     
     const optionButtons = document.querySelectorAll("#coop-options-container button");
+    const isCorrect = selectedIdx === correctIdx;
     
-    if (selectedIdx === correctIdx) {
+    if (isCorrect) {
       cs.scoreUser++;
       optionButtons[selectedIdx].style.background = "#10b981";
       optionButtons[selectedIdx].style.borderColor = "#10b981";
@@ -4122,6 +4187,16 @@ document.addEventListener("DOMContentLoaded", () => {
       optionButtons[correctIdx].style.background = "#10b981";
       optionButtons[correctIdx].style.borderColor = "#10b981";
       optionButtons[correctIdx].style.color = "#fff";
+    }
+
+    if (cs.isMultiplayer) {
+      if (socket && socket.connected) {
+        socket.emit("game_action", {
+          lobbyId: cs.lobbyId,
+          isCorrect: isCorrect
+        });
+      }
+      return;
     }
 
     document.getElementById("coop-score-user").textContent = `${cs.scoreUser}/${cs.currentQIndex + 1}`;
@@ -4158,7 +4233,161 @@ document.addEventListener("DOMContentLoaded", () => {
     addXP(totalXp);
     syncSocialStats();
 
+    state.activeLobbyId = null;
+    state.activeLobbyType = null;
+
     openChatWithFriend(cs.partnerId);
+  }
+
+  function startCardDuelMultiplayer(partnerId, partnerName) {
+    const duelTerms = [
+      { term: "Ацетилхолин", cat: "Фармакология", def: "Основной нейромедиатор парасимпатической нервной системы, действующий на мускариновые и никотиновые рецепторы." },
+      { term: "Нефрон", cat: "Анатомия", def: "Структурно-функциональная единица почки, состоящая из почечного тельца и системы канальцев." },
+      { term: "Фракция выброса", cat: "Кардиология", def: "Показатель насосной функции сердца, отношение ударного объема к конечно-диастолическому объему левого желудочка (норма >50%)." },
+      { term: "Гипоксия", cat: "Патофизиология", def: "Типовой патологический процесс, характеризующийся недостаточным снабжением тканей кислородом или нарушением его усвоения." },
+      { term: "Почечный клиренс", cat: "Нефрология", def: "Объем плазмы крови, полностью очищаемый почками от какого-либо вещества за единицу времени." }
+    ];
+
+    state.duelState = {
+      active: true,
+      isMultiplayer: true,
+      lobbyId: state.activeLobbyId,
+      partnerId: partnerId,
+      currentCardIndex: 0,
+      scoreUser: 0,
+      scorePartner: 0,
+      cards: duelTerms
+    };
+
+    document.getElementById("comm-chat-active").classList.add("hidden");
+    document.getElementById("comm-duel-active").classList.remove("hidden");
+    document.getElementById("duel-partner-name").textContent = partnerName;
+
+    updateDuelCard();
+  }
+
+  function updateDuelStateMultiplayer(players) {
+    const ds = state.duelState;
+    if (!ds || !ds.active) return;
+
+    const myId = state.userProfile.id;
+    const partnerId = Object.keys(players).find(id => id !== myId);
+
+    const me = players[myId];
+    const partner = players[partnerId];
+
+    if (!me || !partner) return;
+
+    ds.scoreUser = me.score;
+    ds.scorePartner = partner.score;
+
+    document.getElementById("duel-score-user").textContent = ds.scoreUser;
+    document.getElementById("duel-score-partner").textContent = ds.scorePartner;
+
+    const actionText = document.getElementById("duel-partner-action-text");
+    
+    if (me.currentIdx > partner.currentIdx) {
+      actionText.textContent = `Ожидание хода ${partner.name}...`;
+    } else if (partner.currentIdx > me.currentIdx) {
+      actionText.textContent = `${partner.name} сделал ход! Ваша очередь.`;
+      const failBtn = document.getElementById("btn-duel-fail");
+      const successBtn = document.getElementById("btn-duel-success");
+      const flipBtn = document.getElementById("btn-duel-flip-card");
+      if (failBtn && failBtn.disabled && me.currentIdx === ds.currentCardIndex) {
+        failBtn.disabled = false;
+        successBtn.disabled = false;
+        if (flipBtn) flipBtn.classList.remove("hidden");
+      }
+    } else {
+      if (me.currentIdx > ds.currentCardIndex) {
+        actionText.textContent = `Оба игрока ответили!`;
+        setTimeout(() => {
+          ds.currentCardIndex = me.currentIdx;
+          updateDuelCard();
+        }, 1500);
+      } else {
+        actionText.textContent = `Раунд #${me.currentIdx + 1}. Ожидание ответов...`;
+      }
+    }
+  }
+
+  function startCoopQuizMultiplayer(partnerId, partnerName) {
+    const coopQuestions = [
+      { q: "Какой из перечисленных ферментов лизосом активируется при ацидозе в очаге воспаления?", opts: ["Кислая фосфатаза", "Щелочная фосфатаза", "Амилаза", "Каталаза"], ans: 0, hint: "Помни про приставку - кислая среда соответствует ацидозу!" },
+      { q: "Какое лекарственное вещество блокирует мускариновые холинорецепторы SA-узла?", opts: ["Атропин", "Пропранолол", "Пилокарпин", "Ацетилхолин"], ans: 0, hint: "Атропин - классический М-холиноблокатор, вызывающий тахикардию." },
+      { q: "При каком уровне СКФ диагностируется терминальная хроническая болезнь почек (ХБП 5 стадии)?", opts: ["Менее 15 мл/мин/1.73м²", "Менее 30 мл/мин/1.73м²", "Менее 45 мл/мин/1.73м²", "Менее 60 мл/мин/1.73м²"], ans: 0, hint: "Это крайняя стадия, перед гемодиализом. Точно менее 15!" },
+      { q: "Какой синдром характеризуется повышением pH артериальной крови более 7.45 и накоплением бикарбоната?", opts: ["Метаболический алкалоз", "Респираторный ацидоз", "Метаболический ацидоз", "Респираторный алкалоз"], ans: 0, hint: "pH > 7.45 - это алкалоз. Раз дело в бикарбонате - метаболический." },
+      { q: "Как называется сухой некроз миокарда, возникающий в результате ишемии?", opts: ["Коагуляционный некроз", "Колликвационный некроз", "Гангрена", "Секвестр"], ans: 0, hint: "Для сердца и плотных паренхиматозных органов характерен именно коагуляционный!" }
+    ];
+
+    state.coopState = {
+      active: true,
+      isMultiplayer: true,
+      lobbyId: state.activeLobbyId,
+      partnerId: partnerId,
+      currentQIndex: 0,
+      scoreUser: 0,
+      scorePartner: 0,
+      questions: coopQuestions
+    };
+
+    document.getElementById("comm-chat-active").classList.add("hidden");
+    document.getElementById("comm-coop-active").classList.remove("hidden");
+    document.getElementById("coop-partner-name").textContent = partnerName;
+    document.getElementById("coop-partner-progress-label").textContent = `${partnerName}:`;
+
+    updateCoopQuestion();
+  }
+
+  function updateCoopStateMultiplayer(players) {
+    const cs = state.coopState;
+    if (!cs || !cs.active) return;
+
+    const myId = state.userProfile.id;
+    const partnerId = Object.keys(players).find(id => id !== myId);
+
+    const me = players[myId];
+    const partner = players[partnerId];
+
+    if (!me || !partner) return;
+
+    cs.scoreUser = me.score;
+    cs.scorePartner = partner.score;
+
+    document.getElementById("coop-score-user").textContent = `${cs.scoreUser}/${me.currentIdx}`;
+    document.getElementById("coop-score-partner").textContent = `${cs.scorePartner}/${partner.currentIdx}`;
+
+    const userPercent = (me.currentIdx / cs.questions.length) * 100;
+    const partnerPercent = (partner.currentIdx / cs.questions.length) * 100;
+    document.getElementById("coop-progress-user").style.width = `${userPercent}%`;
+    document.getElementById("coop-progress-partner").style.width = `${partnerPercent}%`;
+
+    const hintAuthor = document.getElementById("coop-hint-author");
+    const hintText = document.getElementById("coop-hint-text");
+
+    if (me.currentIdx > partner.currentIdx) {
+      if (hintAuthor) hintAuthor.textContent = partner.name;
+      if (hintText) hintText.textContent = `Думает над вопросом #${partner.currentIdx + 1}...`;
+    } else if (partner.currentIdx > me.currentIdx) {
+      if (hintAuthor) hintAuthor.textContent = "Система:";
+      if (hintText) hintText.textContent = `${partner.name} ответил! Теперь ваш ход.`;
+      
+      const optionButtons = document.querySelectorAll("#coop-options-container button");
+      if (optionButtons.length > 0 && optionButtons[0].disabled && me.currentIdx === cs.currentQIndex) {
+        optionButtons.forEach(btn => btn.disabled = false);
+      }
+    } else {
+      if (me.currentIdx > cs.currentQIndex) {
+        if (hintText) hintText.textContent = `Оба ответили! Загрузка следующего вопроса...`;
+        setTimeout(() => {
+          cs.currentQIndex = me.currentIdx;
+          updateCoopQuestion();
+        }, 1500);
+      } else {
+        if (hintAuthor) hintAuthor.textContent = partner.name;
+        if (hintText) hintText.textContent = cs.questions[cs.currentQIndex].hint;
+      }
+    }
   }
 
   // --- MEDICAL FORUM SYSTEM ---

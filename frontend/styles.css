@@ -2,6 +2,10 @@
    MEDSTUDY HUB: CORE DESIGN SYSTEM & STYLES
    ========================================== */
 
+.hidden {
+  display: none !important;
+}
+
 /* Variables & Theme Tokens */
 :root {
   --font-heading: 'Outfit', 'Inter', system-ui, sans-serif;
