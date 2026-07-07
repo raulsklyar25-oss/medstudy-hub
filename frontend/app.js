@@ -3716,12 +3716,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const friend = friendsList.find(f => f.id === msg.senderId || f.id === msg.receiverId);
       console.log("[SOCKET] Matching friend in list found:", friend);
       if (friend) {
-        const exists = friend.chatHistory.some(m => m.text === msg.text && m.time === msg.time);
+        if (msg.senderId === state.userProfile.id) {
+          const unconfirmed = friend.chatHistory.find(m => m.sender === "sent" && m.text === msg.text && m.isConfirmed === false);
+          if (unconfirmed) {
+            unconfirmed.time = msg.time;
+            unconfirmed.isConfirmed = true;
+            if (state.activeFriendId === friend.id) {
+              renderChatMessages();
+            }
+            return;
+          }
+        }
+
+        const exists = friend.chatHistory.some(m => m.text === msg.text && (m.time === msg.time || m.isConfirmed));
         if (!exists) {
           friend.chatHistory.push({
             sender: msg.senderId === state.userProfile.id ? "sent" : "received",
             text: msg.text,
-            time: msg.time
+            time: msg.time,
+            isConfirmed: true
           });
           if (state.activeFriendId === friend.id) {
             renderChatMessages();
@@ -3802,7 +3815,8 @@ document.addEventListener("DOMContentLoaded", () => {
     friend.chatHistory.push({
       sender: "sent",
       text: userText,
-      time: formattedTime
+      time: formattedTime,
+      isConfirmed: false
     });
 
     input.value = "";
