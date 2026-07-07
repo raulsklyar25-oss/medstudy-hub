@@ -645,18 +645,20 @@ io.on("connection", (socket) => {
 
   // Direct Friend Multiplayer Invites
   socket.on("invite_friend", (data) => {
-    // data: { receiverId, type }
+    // data: { receiverId, type, systemId, subjectId }
     const sender = connectedUsers.get(socket.id);
     if (!sender) return;
     io.to(`user_${data.receiverId}`).emit("invite_received", {
       senderId: sender.id,
       senderName: sender.username,
-      type: data.type
+      type: data.type,
+      systemId: data.systemId,
+      subjectId: data.subjectId
     });
   });
 
   socket.on("accept_invite", (data) => {
-    // data: { senderId, type }
+    // data: { senderId, type, systemId, subjectId }
     const receiver = connectedUsers.get(socket.id);
     if (!receiver) return;
     
@@ -686,6 +688,8 @@ io.on("connection", (socket) => {
     const lobbyState = {
       lobbyId,
       type: data.type,
+      systemId: data.systemId,
+      subjectId: data.subjectId,
       players: {
         [data.senderId]: { id: data.senderId, name: senderUser.username, score: 0, currentIdx: 0 },
         [receiver.id]: { id: receiver.id, name: receiver.username, score: 0, currentIdx: 0 }
@@ -697,7 +701,9 @@ io.on("connection", (socket) => {
       lobbyId,
       type: data.type,
       player1: { id: data.senderId, name: senderUser.username },
-      player2: { id: receiver.id, name: receiver.username }
+      player2: { id: receiver.id, name: receiver.username },
+      systemId: data.systemId,
+      subjectId: data.subjectId
     });
   });
 

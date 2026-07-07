@@ -986,9 +986,28 @@
                     </div>
                   </div>
                   <!-- Quick actions -->
-                  <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-outline btn-xs" id="btn-chat-start-duel" style="font-size: 11px; padding: 4px 10px; border-color: rgba(255,0,127,0.3); color: var(--accent-pink);">⚔️ Дуэль</button>
-                    <button class="btn btn-primary btn-xs" id="btn-chat-start-coop" style="font-size: 11px; padding: 4px 10px;">📝 Тест вместе</button>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <select id="chat-invite-system" style="font-size: 11px; padding: 4px 8px; border-radius: 6px; background: rgba(10,15,30,0.8); border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; width: 110px;">
+                      <option value="all">Все системы</option>
+                      <option value="cardiovascular">Сердечно-сосудистая</option>
+                      <option value="nervous">Нервная</option>
+                      <option value="respiratory">Дыхательная</option>
+                      <option value="digestive">Пищеварительная</option>
+                      <option value="urinary">Мочевыделительная</option>
+                      <option value="endocrine">Эндокринная</option>
+                    </select>
+                    <select id="chat-invite-subject" style="font-size: 11px; padding: 4px 8px; border-radius: 6px; background: rgba(10,15,30,0.8); border: 1px solid rgba(255,255,255,0.15); color: #fff; cursor: pointer; width: 110px;">
+                      <option value="all">Все предметы</option>
+                      <option value="anatomy">Анатомия</option>
+                      <option value="histology">Гистология</option>
+                      <option value="physiology">Нормфиз</option>
+                      <option value="biochemistry">Биохимия</option>
+                      <option value="pathophysiology">Патфиз</option>
+                      <option value="pathology">Патанат</option>
+                      <option value="pharmacology">Фармакология</option>
+                    </select>
+                    <button class="btn btn-outline btn-xs" id="btn-chat-start-duel" style="font-size: 11px; padding: 4px 10px; border-color: rgba(255,0,127,0.3); color: var(--accent-pink); margin: 0;">⚔️ Дуэль</button>
+                    <button class="btn btn-primary btn-xs" id="btn-chat-start-coop" style="font-size: 11px; padding: 4px 10px; margin: 0;">📝 Тест вместе</button>
                   </div>
                 </div>
 
