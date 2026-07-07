@@ -1412,7 +1412,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const token = safeStorage.getItem("medstudy_jwt_token");
             try {
               showToast("Загрузка книги на сервер...");
-              const res = await fetch("http://localhost:5000/api/books/upload", {
+              const res = await fetch(`${API_URL}/books/upload`, {
                 method: "POST",
                 headers: {
                   "Authorization": `Bearer ${token}`
@@ -1424,7 +1424,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 state.userResources.push({
                   title: data.book.title,
                   subjectId: data.book.subjectId,
-                  link: `http://localhost:5000/uploads/${data.book.filename}`
+                  link: `${BACKEND_URL}/uploads/${data.book.filename}`
                 });
                 safeStorage.setItem("med_resources", JSON.stringify(state.userResources));
                 addResourceForm.reset();
@@ -3182,7 +3182,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Try to sync with backend in background (non-blocking)
     const token = safeStorage.getItem("medstudy_jwt_token");
     if (token) {
-      fetch("http://localhost:5000/api/auth/me", {
+      fetch(`${API_URL}/auth/me`, {
         headers: { "Authorization": `Bearer ${token}` }
       })
       .then(res => res.json())
@@ -3209,7 +3209,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Background sync with backend (fire and forget)
     const token = safeStorage.getItem("medstudy_jwt_token");
     if (token) {
-      fetch("http://localhost:5000/api/auth/update", {
+      fetch(`${API_URL}/auth/update`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -3283,8 +3283,7 @@ document.addEventListener("DOMContentLoaded", () => {
       unlockAchievement("account_created");
       showToast("🎉 Аккаунт успешно создан! Добро пожаловать.");
 
-      // Background backend registration (won't block UI)
-      fetch("http://localhost:5000/api/auth/register", {
+      fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -3299,6 +3298,11 @@ document.addEventListener("DOMContentLoaded", () => {
       .then(data => {
         if (data.token) {
           safeStorage.setItem("medstudy_jwt_token", data.token);
+          if (data.user) {
+            state.userProfile = data.user;
+            saveUserProfile();
+            renderProfileView();
+          }
           initSocket();
         }
       })
@@ -3356,6 +3360,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     if (specialty) specialty.textContent = state.userProfile.specialty;
+    
+    const profIdVal = document.getElementById("prof-id-val");
+    if (profIdVal) {
+      profIdVal.textContent = state.userProfile.id || "-";
+    }
+    const profIdContainer = document.getElementById("prof-id-container");
+    if (profIdContainer && state.userProfile.id) {
+      profIdContainer.onclick = () => {
+        navigator.clipboard.writeText(state.userProfile.id);
+        showToast("ID скопирован в буфер обмена!", "success");
+      };
+    }
+    
     if (motto) motto.textContent = state.userProfile.motto;
     if (levelNum) levelNum.textContent = state.level;
     
@@ -3419,23 +3436,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- CHATS & FRIENDS DATABASE ---
-  const friendsList = [
-    { id: "neuro_mary", name: "Мария_Нейро", avatar: "🧠", specialty: "МГМУ, Неврология", motto: "Все мысли - синаптические потенциалы.", status: "studying", statusText: "Учит физиологию мозга", chatHistory: [
-      { sender: "received", text: "Привет! Слышала про новый Справочник органов? Тут просто невероятно расписана биохимия мозга. Как у тебя успехи с учебой?", time: "10:14" }
-    ] },
-    { id: "cardio_ivan", name: "Иван_Кардио", avatar: "🫀", specialty: "СГМУ, Кардиохирургия", motto: "Сердце бьется - жизнь продолжается.", status: "online", statusText: "В сети", chatHistory: [
-      { sender: "received", text: "Привет, коллега! Нужен совет по калькулятору СКФ или дозировкам. Напиши, если решишь посчитать что-то.", time: "Вчера" }
-    ] },
-    { id: "pathphys_dmitry", name: "Дмитрий_ПатФиз", avatar: "🔬", specialty: "РНИМУ, Патанатомия", motto: "Смерть - это лишь крайняя форма патологии.", status: "online", statusText: "В сети", chatHistory: [
-      { sender: "received", text: "Здорово. Проводил патологоанатомический анализ кейса по тромбоэмболии легочной артерии. Хочешь устроить дуэль на флеш-картах?", time: "Вчера" }
-    ] },
-    { id: "sklif_anya", name: "Аня_Склиф", avatar: "🩺", specialty: "СПбГМУ, Реанимация", motto: "Жизнь прекрасна, особенно на ИВЛ.", status: "studying", statusText: "Изучает ЭКГ", chatHistory: [
-      { sender: "received", text: "Привет! Скоро экзамен по фармакологии и реаниматологии, давай решать тесты вместе в кооперативе? Будем подсказывать друг другу в чате!", time: "2 часа назад" }
-    ] },
-    { id: "pharma_kirill", name: "Кирилл_Фарма", avatar: "💊", specialty: "ПГМУ, Фармакология", motto: "Все есть яд, и ничто не лишено ядовитости.", status: "offline", statusText: "Не в сети", chatHistory: [
-      { sender: "received", text: "Привет. Завтра сдаю тему фармакокинетики. Не помнишь, как рассчитать объем распределения препарата?", time: "3 дня назад" }
-    ] }
-  ];
+  const friendsList = [];
 
   state.activeFriendId = null;
 
@@ -3657,40 +3658,65 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function initSocket() {
-    if (typeof io !== "undefined" && !socket) {
-      socket = io("http://localhost:5000");
+    if (typeof io === "undefined") return;
 
-      socket.on("receive_message", (msg) => {
-        const friend = friendsList.find(f => f.id === msg.senderId || f.id === msg.receiverId);
-        if (friend) {
-          const exists = friend.chatHistory.some(m => m.text === msg.text && m.time === msg.time);
-          if (!exists) {
-            friend.chatHistory.push({
-              sender: msg.senderId === state.userProfile.username ? "sent" : "received",
-              text: msg.text,
-              time: msg.time
-            });
-            if (state.activeFriendId === friend.id) {
-              renderChatMessages();
-            }
-          }
-        }
-      });
-
-      socket.on("buddy_typing", (data) => {
-        const typingIndicator = document.getElementById("chat-typing-indicator");
-        if (state.activeFriendId === data.buddyId && typingIndicator) {
-          if (data.typing) {
-            const typingFriend = friendsList.find(f => f.id === data.buddyId);
-            const typingName = typingFriend ? typingFriend.name : "Друг";
-            document.getElementById("chat-typing-text").textContent = `${typingName} печатает`;
-            typingIndicator.classList.remove("hidden");
-          } else {
-            typingIndicator.classList.add("hidden");
-          }
-        }
-      });
+    if (!socket) {
+      try {
+        socket = io(BACKEND_URL, {
+          reconnectionDelayMax: 10000,
+        });
+      } catch(e) {
+        console.warn("Socket.io failed to initialize");
+        return;
+      }
     }
+
+    const registerSocket = () => {
+      if (state.userProfile && state.userProfile.id) {
+        socket.emit("register_connection", {
+          id: state.userProfile.id,
+          username: state.userProfile.username,
+          nameColor: state.userProfile.nameColor || "#00f2fe"
+        });
+      }
+    };
+
+    if (socket.connected) {
+      registerSocket();
+    }
+
+    socket.off("connect").on("connect", registerSocket);
+
+    socket.off("receive_message").on("receive_message", (msg) => {
+      const friend = friendsList.find(f => f.id === msg.senderId || f.id === msg.receiverId);
+      if (friend) {
+        const exists = friend.chatHistory.some(m => m.text === msg.text && m.time === msg.time);
+        if (!exists) {
+          friend.chatHistory.push({
+            sender: msg.senderId === state.userProfile.id ? "sent" : "received",
+            text: msg.text,
+            time: msg.time
+          });
+          if (state.activeFriendId === friend.id) {
+            renderChatMessages();
+          }
+        }
+      }
+    });
+
+    socket.off("buddy_typing").on("buddy_typing", (data) => {
+      const typingIndicator = document.getElementById("chat-typing-indicator");
+      if (state.activeFriendId === data.buddyId && typingIndicator) {
+        if (data.typing) {
+          const typingFriend = friendsList.find(f => f.id === data.buddyId);
+          const typingName = typingFriend ? typingFriend.name : "Друг";
+          document.getElementById("chat-typing-text").textContent = `${typingName} печатает`;
+          typingIndicator.classList.remove("hidden");
+        } else {
+          typingIndicator.classList.add("hidden");
+        }
+      }
+    });
   }
 
   function sendChatMessage() {
@@ -3712,15 +3738,14 @@ document.addEventListener("DOMContentLoaded", () => {
     input.value = "";
     renderChatMessages();
 
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit("send_message", {
-        senderId: state.userProfile.username,
         receiverId: friend.id,
         text: userText,
         time: formattedTime
       });
     } else {
-      triggerBotReply(friend.id, userText);
+      showToast("Нет подключения к серверу. Сообщение не отправлено.", "error");
     }
   }
 
@@ -4331,35 +4356,44 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- FRIEND SEARCH & ADD SYSTEM ---
-  const botUsersDatabase = [
-    { id: "gastro_elena", name: "Елена_Гастро", avatar: "🧪", specialty: "Гастроэнтерология", status: "Изучает ГЭРБ" },
-    { id: "surg_alexey", name: "Алексей_Хирург", avatar: "🔪", specialty: "Хирургия", status: "На дежурстве" },
-    { id: "derma_olga", name: "Ольга_Дерма", avatar: "🧴", specialty: "Дерматология", status: "Читает Фицпатрика" },
-    { id: "endo_svetlana", name: "Светлана_Эндо", avatar: "🦋", specialty: "Эндокринология", status: "Разбирает тиреотоксикоз" },
-    { id: "psych_artem", name: "Артём_Психиатр", avatar: "🧩", specialty: "Психиатрия", status: "Анализирует DSM-5" },
-    { id: "neuro_roma", name: "Роман_Невролог", avatar: "⚡", specialty: "Неврология", status: "Изучает эпилепсию" },
-    { id: "pedia_marina", name: "Марина_Педиатр", avatar: "👶", specialty: "Педиатрия", status: "Вакцинация новорожденных" },
-    { id: "onco_victor", name: "Виктор_Онко", avatar: "🎗️", specialty: "Онкология", status: "TNM классификация" },
-    { id: "ophthalm_diana", name: "Диана_Офтальм", avatar: "👁️", specialty: "Офтальмология", status: "Исследует глаукому" },
-    { id: "uro_nikolay", name: "Николай_Уролог", avatar: "🏥", specialty: "Урология", status: "Разбирает МКБ" }
-  ];
+  const botUsersDatabase = [];
+  let lastSearchResults = [];
 
-  function searchUsers(query) {
-    if (!query || query.trim().length < 2) return [];
-    const q = query.toLowerCase().trim();
-    const existingIds = friendsList.map(f => f.id);
+  async function searchUsers(query) {
+    if (!query || query.trim().length < 1) return [];
+    const q = query.trim();
     
-    // Search in bot database + existing friends
-    const allSearchable = [...botUsersDatabase, ...friendsList];
-    return allSearchable.filter(u => {
-      const nameMatch = u.name.toLowerCase().includes(q);
-      const specMatch = u.specialty && u.specialty.toLowerCase().includes(q);
-      return (nameMatch || specMatch) && !existingIds.includes(u.id);
-    }).slice(0, 5);
+    try {
+      const res = await fetch(`${API_URL}/users/search?query=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (data.users) {
+        const existingIds = friendsList.map(f => f.id);
+        const myProfile = safeStorage.getItem("medstudy_user_profile");
+        let myId = "";
+        if (myProfile) {
+          try { myId = JSON.parse(myProfile).id; } catch(e) {}
+        }
+        
+        lastSearchResults = data.users
+          .filter(u => u.id !== myId && !existingIds.includes(u.id))
+          .map(u => ({
+            id: u.id,
+            name: u.username,
+            avatar: u.avatar || "👽",
+            specialty: u.specialty || "Студент",
+            status: u.rank || "Студент",
+            online: true
+          }));
+        return lastSearchResults;
+      }
+    } catch (e) {
+      console.warn("Error searching users:", e);
+    }
+    return [];
   }
 
   function addFriend(userId) {
-    const user = botUsersDatabase.find(u => u.id === userId);
+    const user = lastSearchResults.find(u => u.id === userId);
     if (!user) return;
     if (friendsList.find(f => f.id === userId)) {
       showToast("Этот пользователь уже в ваших друзьях!", "warning");
@@ -4423,24 +4457,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const searchInput = document.getElementById("friend-search-input");
     
     if (searchBtn && searchInput) {
-      searchBtn.onclick = () => {
-        const results = searchUsers(searchInput.value);
+      searchBtn.onclick = async () => {
+        const results = await searchUsers(searchInput.value);
         renderSearchResults(results);
       };
-      searchInput.addEventListener("keydown", (e) => {
+      searchInput.addEventListener("keydown", async (e) => {
         if (e.key === "Enter") {
-          const results = searchUsers(searchInput.value);
+          const results = await searchUsers(searchInput.value);
           renderSearchResults(results);
         }
       });
+      let debounceTimeout;
       searchInput.addEventListener("input", () => {
-        if (searchInput.value.length >= 2) {
-          const results = searchUsers(searchInput.value);
-          renderSearchResults(results);
-        } else {
-          const container = document.getElementById("friend-search-results");
-          if (container) { container.style.display = "none"; container.innerHTML = ""; }
-        }
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(async () => {
+          if (searchInput.value.length >= 1) {
+            const results = await searchUsers(searchInput.value);
+            renderSearchResults(results);
+          } else {
+            const container = document.getElementById("friend-search-results");
+            if (container) { container.style.display = "none"; container.innerHTML = ""; }
+          }
+        }, 300);
       });
     }
   }

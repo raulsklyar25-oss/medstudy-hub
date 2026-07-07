@@ -197,7 +197,12 @@ app.get("/api/users/search", async (req, res) => {
     const { Op } = require("sequelize");
     let whereClause = {};
     if (query) {
-      whereClause = { username: { [Op.like]: `%${query}%` } };
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(query);
+      if (isUuid) {
+        whereClause = { id: query };
+      } else {
+        whereClause = { username: { [Op.like]: `%${query}%` } };
+      }
     }
     const users = await User.findAll({
       where: whereClause,
