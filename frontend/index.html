@@ -85,10 +85,7 @@
           <span class="menu-icon">🕸️</span> Карта связей
         </a>
         <a href="#lab-analyzer" class="menu-item" data-view="lab-analyzer">
-          <span class="menu-icon">🧪</span> Лаб. анализатор
-        </a>
-        <a href="#calculator" class="menu-item" data-view="calculator">
-          <span class="menu-icon">🧮</span> Калькулятор
+          <span class="menu-icon">🧪</span> Лабораторные анализы
         </a>
         <a href="#library" class="menu-item" data-view="library">
           <span class="menu-icon">📚</span> Библиотека
@@ -783,118 +780,8 @@
 
         </section>
 
-        <!-- CLINICAL CALCULATOR VIEW -->
+        <!-- CLINICAL CALCULATOR (REMOVED) -->
         <section id="view-calculator" class="app-view hidden">
-          <div class="view-header">
-            <h2>Клинический калькулятор дозировок и СКФ</h2>
-            <p class="view-subtitle">Производите автоматизированные расчеты медицинских формул: клиренс креатинина, скорость клубочковой фильтрации (CKD-EPI), площадь поверхности тела (BSA) и ИМТ с интерактивной расшифровкой результатов.</p>
-          </div>
-
-          <div class="calc-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-bottom: 25px;">
-            <!-- Left panel: Parameters Input -->
-            <div class="calc-inputs glass-panel" style="padding: 25px; border-radius: 12px; background: rgba(13, 20, 38, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);">
-              <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 20px; color: var(--accent-cyan);">⚙️ Выберите тип расчета</h3>
-              
-              <div class="form-group" style="margin-bottom: 20px;">
-                <label for="calc-type-select" style="display: block; margin-bottom: 8px; font-weight: 500;">Формула расчета:</label>
-                <select id="calc-type-select" style="width: 100%; padding: 10px; border-radius: 6px; background: rgba(10, 15, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; cursor: pointer;">
-                  <option value="ckd-epi">Скорость клубочковой фильтрации (СКФ по CKD-EPI, 2021)</option>
-                  <option value="cockcroft">Клиренс креатинина (Кокрофт-Голт)</option>
-                  <option value="bsa">Площадь поверхности тела (BSA по Мостеллеру) и дозирование</option>
-                  <option value="bmi">Индекс массы тела (ИМТ) и дефицит воды при дегидратации</option>
-                </select>
-              </div>
-
-              <!-- Shared Sliders (shown conditionally depending on type) -->
-              <div id="calc-inputs-fields">
-                <div class="form-group" style="margin-bottom: 18px;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <label>Пол:</label>
-                    <span id="val-gender-text" style="font-weight: bold; color: var(--accent-cyan);">Мужской</span>
-                  </div>
-                  <div style="display: flex; gap: 15px;">
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                      <input type="radio" name="calc-gender" value="male" checked style="accent-color: var(--accent-cyan);"> Мужской
-                    </label>
-                    <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                      <input type="radio" name="calc-gender" value="female" style="accent-color: var(--accent-cyan);"> Женский
-                    </label>
-                  </div>
-                </div>
-
-                <div class="form-group" style="margin-bottom: 18px;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <label for="calc-age">Возраст:</label>
-                    <span style="font-weight: bold; color: var(--accent-cyan);"><span id="val-age">45</span> лет</span>
-                  </div>
-                  <input type="range" id="calc-age" min="18" max="100" value="45" style="width: 100%; accent-color: var(--accent-cyan);">
-                </div>
-
-                <div class="form-group" style="margin-bottom: 18px;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <label for="calc-weight">Масса тела (Вес):</label>
-                    <span style="font-weight: bold; color: var(--accent-cyan);"><span id="val-weight">75</span> кг</span>
-                  </div>
-                  <input type="range" id="calc-weight" min="30" max="150" value="75" style="width: 100%; accent-color: var(--accent-cyan);">
-                </div>
-
-                <div class="form-group" id="calc-height-group" style="margin-bottom: 18px;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <label for="calc-height">Рост:</label>
-                    <span style="font-weight: bold; color: var(--accent-cyan);"><span id="val-height">175</span> см</span>
-                  </div>
-                  <input type="range" id="calc-height" min="100" max="220" value="175" style="width: 100%; accent-color: var(--accent-cyan);">
-                </div>
-
-                <div class="form-group" id="calc-creatinine-group" style="margin-bottom: 18px;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <label for="calc-creatinine">Креатинин сыворотки:</label>
-                    <span style="font-weight: bold; color: var(--accent-cyan);"><span id="val-creatinine">95</span> мкмоль/л</span>
-                  </div>
-                  <input type="range" id="calc-creatinine" min="30" max="800" value="95" style="width: 100%; accent-color: var(--accent-cyan);">
-                </div>
-
-                <div class="form-group id-dose-group" id="calc-dose-group" style="margin-bottom: 18px; display: none;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <label for="calc-target-dose">Целевая доза препарата (на м² площади тела):</label>
-                    <span style="font-weight: bold; color: var(--accent-cyan);"><span id="val-target-dose">150</span> мг/м²</span>
-                  </div>
-                  <input type="range" id="calc-target-dose" min="10" max="500" value="150" style="width: 100%; accent-color: var(--accent-cyan);">
-                </div>
-              </div>
-            </div>
-
-            <!-- Right panel: Calculation Results -->
-            <div class="calc-results glass-panel" style="padding: 25px; border-radius: 12px; background: rgba(13, 20, 38, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); display: flex; flex-direction: column; justify-content: space-between; min-height: 380px;">
-              <div>
-                <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 15px; color: var(--accent-pink);">📊 Результат расчета</h3>
-                
-                <!-- Main Value circle/badge -->
-                <div class="calc-value-container" style="text-align: center; padding: 20px; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 8px; margin-bottom: 20px;">
-                  <div id="calc-output-val" style="font-size: 36px; font-weight: 800; color: #fff; text-shadow: 0 0 15px rgba(0, 242, 254, 0.5);">--</div>
-                  <div id="calc-output-unit" style="font-size: 13px; color: var(--text-muted); margin-top: 5px; text-transform: uppercase;">мл/мин/1.73м²</div>
-                </div>
-
-                <!-- Interpretation info -->
-                <div class="calc-interpretation" style="margin-bottom: 20px;">
-                  <strong style="color: var(--accent-cyan);">Заключение:</strong>
-                  <div id="calc-interpretation-text" style="font-size: 13px; margin-top: 5px; line-height: 1.5; color: #fff;">Введите параметры для автоматического расчета.</div>
-                </div>
-              </div>
-
-              <!-- Recommendation box -->
-              <div class="calc-recommendations" style="padding: 15px; border-radius: 8px; background: rgba(0, 242, 254, 0.05); border: 1px solid rgba(0, 242, 254, 0.15); color: var(--text-color); font-size: 12.5px; line-height: 1.5;">
-                <span style="font-weight: bold; color: var(--accent-cyan); display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
-                  💡 Клиническая рекомендация:
-                </span>
-                <span id="calc-recommendations-text">Параметры находятся в границах физиологической нормы.</span>
-              </div>
-              <div style="margin-top: 15px; display: flex; gap: 10px;">
-                <button class="btn btn-outline btn-xs" id="btn-calc-share-chat" style="flex: 1; font-size: 11px; padding: 6px 10px; background: rgba(0, 242, 254, 0.05); border-color: rgba(0, 242, 254, 0.2);">📤 В чат другу</button>
-                <button class="btn btn-outline btn-xs" id="btn-calc-share-forum" style="flex: 1; font-size: 11px; padding: 6px 10px; background: rgba(255, 0, 127, 0.05); border-color: rgba(255, 0, 127, 0.2);">💬 На форум</button>
-              </div>
-            </div>
-          </div>
         </section>
 
         <!-- USER PROFILE VIEW -->
@@ -1333,10 +1220,10 @@
         </div>
       </section>
 
-        <!-- LAB ANALYZER VIEW -->
+        <!-- LAB ANALYSES VIEW -->
         <section id="view-lab-analyzer" class="app-view hidden">
           <div class="view-header">
-            <h2>Виртуальный лабораторный анализатор</h2>
+            <h2>Лабораторные анализы</h2>
             <p class="view-subtitle">Анализируйте отклонения биохимических маркеров, показателей газов крови, ликвора и костного обмена. Вы можете кликать по строкам бланка для выделения патологий и сопоставлять их для постановки верного диагноза.</p>
           </div>
 

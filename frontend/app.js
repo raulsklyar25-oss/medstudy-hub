@@ -3255,13 +3255,144 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- LAB ANALYZER ENGINE ---
+  function generateProceduralLabCases(count) {
+    const categories = [
+      {
+        name: "Биохимия и газы крови",
+        params: [
+          { name: "Глюкоза плазмы", ref: "3.3 - 5.5", unit: "ммоль/л", baseVal: 4.5, scale: 5 },
+          { name: "pH крови", ref: "7.35 - 7.45", unit: "", baseVal: 7.4, scale: 0.05 },
+          { name: "Гидрокарбонат (HCO3-)", ref: "22.0 - 26.0", unit: "ммоль/л", baseVal: 24.0, scale: 3 },
+          { name: "Калий сыворотки", ref: "3.5 - 5.1", unit: "ммоль/л", baseVal: 4.2, scale: 0.4 }
+        ]
+      },
+      {
+        name: "Почечный профиль",
+        params: [
+          { name: "Креатинин сыворотки", ref: "53 - 115", unit: "мкмоль/л", baseVal: 80, scale: 15 },
+          { name: "Мочевина крови", ref: "2.5 - 8.3", unit: "ммоль/л", baseVal: 5.0, scale: 1 },
+          { name: "Альбумин мочи", ref: "0 - 30", unit: "мг/сут", baseVal: 15, scale: 5 },
+          { name: "СКФ (CKD-EPI)", ref: "90 - 120", unit: "мл/мин/1.73м²", baseVal: 105, scale: 10 }
+        ]
+      },
+      {
+        name: "Печеночный профиль",
+        params: [
+          { name: "АЛТ (Аланинаминотрансфераза)", ref: "0 - 45", unit: "Ед/л", baseVal: 25, scale: 8 },
+          { name: "АСТ (Аспартатаминотрансфераза)", ref: "0 - 40", unit: "Ед/л", baseVal: 20, scale: 6 },
+          { name: "Общий билирубин", ref: "5 - 21", unit: "мкмоль/л", baseVal: 12, scale: 3 },
+          { name: "Альбумин сыворотки", ref: "35 - 52", unit: "г/л", baseVal: 42, scale: 4 }
+        ]
+      },
+      {
+        name: "Эндокринная панель",
+        params: [
+          { name: "ТТГ (Тиреотропный гормон)", ref: "0.4 - 4.0", unit: "мЕд/л", baseVal: 2.0, scale: 0.5 },
+          { name: "Свободный Т4", ref: "9.0 - 19.0", unit: "пмоль/л", baseVal: 14.0, scale: 2 },
+          { name: "Кортизол (утро)", ref: "140 - 600", unit: "нмоль/л", baseVal: 350, scale: 80 },
+          { name: "АКТГ", ref: "0 - 46", unit: "пг/мл", baseVal: 23, scale: 5 }
+        ]
+      }
+    ];
+
+    const labs = [];
+    let h = 42;
+    const random = () => {
+      let x = Math.sin(h++) * 10000;
+      return x - Math.floor(x);
+    };
+    const pick = (arr) => arr[Math.floor(random() * arr.length)];
+
+    const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine"];
+
+    for (let i = 1; i <= count; i++) {
+      const sysId = pick(systems);
+      const sys = systemData[sysId];
+      const categoryTemplate = pick(categories);
+
+      const organ = pick(sys.organs);
+      const cell = pick(sys.cells);
+      const protein = pick(sys.proteins);
+      const disease = pick(sys.diseases);
+      const drug = pick(sys.drugs);
+      const param = pick(sys.parameters);
+      const process = pick(sys.processes);
+
+      const title = `Анализ показателей организма: Кейс #${i}`;
+      const description = `Пациент поступил с выраженным ухудшением самочувствия, указывающим на дисфункцию структуры "${organ}" и повреждение клеток "${cell}". В клинической картине ведущую роль играет расстройство процесса "${process}". Было проведено экспресс-исследование физиологических параметров.`;
+
+      const parameters = categoryTemplate.params.map((p, idx) => {
+        let val;
+        let status = "NORMAL";
+        if (idx === 0) {
+          const parts = p.ref.split(" - ");
+          const maxRef = parseFloat(parts[1] || parts[0]);
+          val = (maxRef * (1.5 + random() * 2.0)).toFixed(p.scale < 1 ? 0 : 1);
+          if (p.name.includes("pH")) val = (7.45 + 0.1 + random() * 0.2).toFixed(2);
+          status = "HIGH";
+        } else if (idx === 1) {
+          const parts = p.ref.split(" - ");
+          const minRef = parseFloat(parts[0]);
+          val = (minRef * (0.3 + random() * 0.4)).toFixed(p.scale < 1 ? 0 : 1);
+          if (p.name.includes("pH")) val = (7.35 - 0.1 - random() * 0.2).toFixed(2);
+          status = "LOW";
+        } else {
+          val = (p.baseVal + (random() - 0.5) * p.scale).toFixed(p.scale < 1 ? 0 : 1);
+          if (p.name.includes("pH")) val = (7.35 + random() * 0.1).toFixed(2);
+        }
+        return {
+          name: p.name,
+          value: String(val),
+          ref: p.ref,
+          unit: p.unit,
+          status: status
+        };
+      });
+
+      const correctAnswerName = `${disease.charAt(0).toUpperCase() + disease.slice(1)} на фоне поражения клеток "${cell}" (Кейс #${i})`;
+
+      const distractors = [];
+      for (let j = 0; j < 4; j++) {
+        const dSys = systemData[pick(systems)];
+        const dDis = pick(dSys.diseases);
+        const dCell = pick(dSys.cells);
+        distractors.push(`${dDis.charAt(0).toUpperCase() + dDis.slice(1)} на фоне поражения клеток "${dCell}" (Вариант #${i * 10 + j})`);
+      }
+
+      const pathogenesis = `
+        <h3>Молекулярный патогенез изменений:</h3>
+        <ul>
+          <li><b>Клеточное звено:</b> Повреждение клеток типа "${cell}" приводит к выходу внутриклеточных компонентов во внеклеточное русло. Это подтверждается изменениями показателей в анализе.</li>
+          <li><b>Органный уровень:</b> В области органа "${organ}" наблюдаются деструктивные процессы, препятствующие нормальному протеканию процесса "${process}" и сдвигающие физиологический параметр "${param}".</li>
+          <li><b>Терапевтический подход:</b> Для купирования патогенетических механизмов и восстановления нормальных концентраций белков (таких как "${protein}") рекомендовано введение препарата "${drug}".</li>
+        </ul>
+      `;
+
+      labs.push({
+        id: `proc_lab_${i}`,
+        title: title,
+        description: description,
+        category: categoryTemplate.name,
+        parameters: parameters,
+        question: "Какое наиболее вероятное клинико-лабораторное заключение по данным результатам?",
+        correctAnswer: correctAnswerName,
+        distractors: distractors,
+        pathogenesis: pathogenesis
+      });
+    }
+
+    return labs;
+  }
+
   function initLabAnalyzer() {
+    if (!state.activeLabPool) {
+      state.activeLabPool = (MedData.labs || []).concat(generateProceduralLabCases(1000));
+    }
     const labSkipBtn = document.getElementById("lab-skip-btn");
     const labNextBtn = document.getElementById("lab-next-btn");
 
     if (!labSkipBtn || !labNextBtn) return;
 
-    // Reset controls
     labSkipBtn.onclick = () => { selectRandomLabCase(); };
     labNextBtn.onclick = () => { selectRandomLabCase(); };
 
@@ -3269,12 +3400,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function selectRandomLabCase() {
-    if (!MedData.labs || MedData.labs.length === 0) return;
+    const pool = state.activeLabPool || MedData.labs || [];
+    if (pool.length === 0) return;
     
     let newIndex = state.currentLabIndex;
-    if (MedData.labs.length > 1) {
+    if (pool.length > 1) {
       while (newIndex === state.currentLabIndex) {
-        newIndex = Math.floor(Math.random() * MedData.labs.length);
+        newIndex = Math.floor(Math.random() * pool.length);
       }
     } else {
       newIndex = 0;
@@ -3284,7 +3416,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function loadLabCase(index) {
-    const labCase = MedData.labs[index];
+    const pool = state.activeLabPool || MedData.labs || [];
+    const labCase = pool[index];
     if (!labCase) return;
 
     const labSheetTitle = document.getElementById("lab-sheet-title");
@@ -3670,8 +3803,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- CLINICAL CALCULATOR ENGINE ---
+  // --- CLINICAL CALCULATOR (REMOVED) ---
   function initClinicalCalculator() {
+    return;
     const calcTypeSelect = document.getElementById("calc-type-select");
     const calcAge = document.getElementById("calc-age");
     const calcWeight = document.getElementById("calc-weight");
