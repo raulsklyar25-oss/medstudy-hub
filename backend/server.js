@@ -363,17 +363,23 @@ io.on("connection", (socket) => {
 
   // Register user connection
   socket.on("register_connection", (user) => {
-    if (!user || !user.id) return;
+    if (!user || !user.id) {
+      console.warn(`[SOCKET WARN] register_connection failed: invalid user data: ${JSON.stringify(user)}`);
+      return;
+    }
     connectedUsers.set(socket.id, user);
     socket.join(`user_${user.id}`); // private room for direct messages
-    console.log(`User ${user.username} registered on socket ${socket.id}`);
+    console.log(`[SOCKET SUCCESS] User ${user.username} (${user.id}) registered on socket ${socket.id}`);
   });
 
   // 1. Social Real-Time Chat (Direct Messages)
   socket.on("send_message", (data) => {
-    // data: { receiverId, text, senderName, senderColor }
+    console.log(`[SOCKET] Received send_message from socket ${socket.id} to receiver ${data.receiverId}: "${data.text}"`);
     const sender = connectedUsers.get(socket.id);
-    if (!sender) return;
+    if (!sender) {
+      console.warn(`[SOCKET WARN] send_message rejected: socket ${socket.id} is not registered!`);
+      return;
+    }
 
     const messagePayload = {
       senderId: sender.id,
@@ -384,6 +390,7 @@ io.on("connection", (socket) => {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
+    console.log(`[SOCKET] Routing message from ${sender.username} (${sender.id}) to room user_${data.receiverId}`);
     // Send to the receiver's private room
     io.to(`user_${data.receiverId}`).emit("receive_message", messagePayload);
     

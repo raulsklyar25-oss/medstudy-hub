@@ -3694,7 +3694,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const registerSocket = () => {
+      console.log("[SOCKET] registerSocket() called. userProfile:", state.userProfile);
       if (state.userProfile && state.userProfile.id) {
+        console.log("[SOCKET] Emitting register_connection for ID:", state.userProfile.id);
         socket.emit("register_connection", {
           id: state.userProfile.id,
           username: state.userProfile.username,
@@ -3710,7 +3712,9 @@ document.addEventListener("DOMContentLoaded", () => {
     socket.off("connect").on("connect", registerSocket);
 
     socket.off("receive_message").on("receive_message", (msg) => {
+      console.log("[SOCKET] Client received receive_message payload:", msg);
       const friend = friendsList.find(f => f.id === msg.senderId || f.id === msg.receiverId);
+      console.log("[SOCKET] Matching friend in list found:", friend);
       if (friend) {
         const exists = friend.chatHistory.some(m => m.text === msg.text && m.time === msg.time);
         if (!exists) {
@@ -3805,12 +3809,14 @@ document.addEventListener("DOMContentLoaded", () => {
     renderChatMessages();
 
     if (socket && socket.connected) {
+      console.log(`[SOCKET] Emitting send_message to receiver: ${friend.id}, text: "${userText}"`);
       socket.emit("send_message", {
         receiverId: friend.id,
         text: userText,
         time: formattedTime
       });
     } else {
+      console.warn(`[SOCKET WARN] Cannot emit send_message. socket.connected: ${socket ? socket.connected : "no socket"}`);
       showToast("Нет подключения к серверу. Сообщение не отправлено.", "error");
     }
   }
@@ -4647,9 +4653,7 @@ document.addEventListener("DOMContentLoaded", () => {
       avatar: user.avatar,
       specialty: user.specialty,
       status: user.status,
-      chatHistory: [
-        { sender: "received", text: `Привет! Я ${user.name}. Рад(а) познакомиться! Давай вместе учиться 📚`, time: getFormattedTime() }
-      ]
+      chatHistory: []
     });
     
     // Save to localStorage
@@ -4739,9 +4743,7 @@ document.addEventListener("DOMContentLoaded", () => {
               avatar: sf.avatar,
               specialty: sf.specialty,
               status: sf.status || (botUser ? botUser.status : "В сети"),
-              chatHistory: [
-                { sender: "received", text: `С возвращением! Как дела с учёбой? 📖`, time: getFormattedTime() }
-              ]
+              chatHistory: []
             });
           }
         });
