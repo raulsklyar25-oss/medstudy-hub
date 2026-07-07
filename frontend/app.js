@@ -4176,11 +4176,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- COOPERATIVE QUIZ SYSTEM ---
+  function seededShuffleOptions(options, seed) {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+      h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+    }
+    const random = () => {
+      let x = Math.sin(h++) * 10000;
+      return x - Math.floor(x);
+    };
+
+    const mapped = options.map((item, idx) => ({ item, r: random(), originalIdx: idx }));
+    mapped.sort((a, b) => a.r - b.r);
+
+    return {
+      shuffledOpts: mapped.map(x => x.item),
+      newAnsIndex: mapped.findIndex(x => x.originalIdx === 0)
+    };
+  }
+
   window.startCoopQuiz = function(partnerId) {
     const friend = friendsList.find(f => f.id === partnerId);
     if (!friend) return;
 
-    const coopQuestions = [
+    const rawQuestions = [
       { q: "Какой из перечисленных ферментов лизосом активируется при ацидозе в очаге воспаления?", opts: ["Кислая фосфатаза", "Щелочная фосфатаза", "Амилаза", "Каталаза"], ans: 0, hint: "Помни про приставку - кислая среда соответствует ацидозу!" },
       { q: "Какое лекарственное вещество блокирует мускариновые холинорецепторы SA-узла?", opts: ["Атропин", "Пропранолол", "Пилокарпин", "Ацетилхолин"], ans: 0, hint: "Атропин - классический М-холиноблокатор, вызывающий тахикардию." },
       { q: "При каком уровне СКФ диагностируется терминальная хроническая болезнь почек (ХБП 5 стадии)?", opts: ["Менее 15 мл/мин/1.73м²", "Менее 30 мл/мин/1.73м²", "Менее 45 мл/мин/1.73м²", "Менее 60 мл/мин/1.73м²"], ans: 0, hint: "Это крайняя стадия, перед гемодиализом. Точно менее 15!" },
@@ -4197,6 +4216,17 @@ document.addEventListener("DOMContentLoaded", () => {
       { q: "Какая кость НЕ относится к лицевому черепу?", opts: ["Клиновидная кость", "Верхняя челюсть", "Скуловая кость", "Носовая кость"], ans: 0, hint: "Эта кость образует основание черепа и похожа на бабочку." },
       { q: "Какой витамин необходим для нормального свертывания крови?", opts: ["Витамин К", "Витамин С", "Витамин А", "Витамин Е"], ans: 0, hint: "Он участвует в гамма-карбоксилировании факторов свертывания II, VII, IX, X." }
     ];
+
+    const seed = Math.random().toString();
+    const coopQuestions = rawQuestions.map((q, idx) => {
+      const { shuffledOpts, newAnsIndex } = seededShuffleOptions(q.opts, seed + "_" + idx);
+      return {
+        q: q.q,
+        opts: shuffledOpts,
+        ans: newAnsIndex,
+        hint: q.hint
+      };
+    });
 
     state.coopState = {
       active: true,
@@ -4406,13 +4436,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function startCoopQuizMultiplayer(partnerId, partnerName) {
-    const coopQuestions = [
+    const rawQuestions = [
       { q: "Какой из перечисленных ферментов лизосом активируется при ацидозе в очаге воспаления?", opts: ["Кислая фосфатаза", "Щелочная фосфатаза", "Амилаза", "Каталаза"], ans: 0, hint: "Помни про приставку - кислая среда соответствует ацидозу!" },
       { q: "Какое лекарственное вещество блокирует мускариновые холинорецепторы SA-узла?", opts: ["Атропин", "Пропранолол", "Пилокарпин", "Ацетилхолин"], ans: 0, hint: "Атропин - классический М-холиноблокатор, вызывающий тахикардию." },
       { q: "При каком уровне СКФ диагностируется терминальная хроническая болезнь почек (ХБП 5 стадии)?", opts: ["Менее 15 мл/мин/1.73м²", "Менее 30 мл/мин/1.73м²", "Менее 45 мл/мин/1.73м²", "Менее 60 мл/мин/1.73м²"], ans: 0, hint: "Это крайняя стадия, перед гемодиализом. Точно менее 15!" },
       { q: "Какой синдром характеризуется повышением pH артериальной крови более 7.45 и накоплением бикарбоната?", opts: ["Метаболический алкалоз", "Респираторный ацидоз", "Метаболический ацидоз", "Респираторный алкалоз"], ans: 0, hint: "pH > 7.45 - это алкалоз. Раз дело в бикарбонате - метаболический." },
       { q: "Как называется сухой некроз миокарда, возникающий в результате ишемии?", opts: ["Коагуляционный некроз", "Колликвационный некроз", "Гангрена", "Секвестр"], ans: 0, hint: "Для сердца и плотных паренхиматозных органов характерен именно коагуляционный!" }
     ];
+
+    const seed = state.activeLobbyId || "coop_multi";
+    const coopQuestions = rawQuestions.map((q, idx) => {
+      const { shuffledOpts, newAnsIndex } = seededShuffleOptions(q.opts, seed + "_" + idx);
+      return {
+        q: q.q,
+        opts: shuffledOpts,
+        ans: newAnsIndex,
+        hint: q.hint
+      };
+    });
 
     state.coopState = {
       active: true,
