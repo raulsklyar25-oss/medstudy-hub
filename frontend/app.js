@@ -3164,6 +3164,7 @@ document.addEventListener("DOMContentLoaded", () => {
         state.userProfile = parsed;
         state.level = parsed.level || 1;
         state.xp = parsed.xp || 0;
+        initSocket();
       } catch(e) {
         console.warn("Профиль повреждён, сброс.");
         safeStorage.removeItem("medstudy_user_profile");
