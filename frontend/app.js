@@ -2688,10 +2688,41 @@ document.addEventListener("DOMContentLoaded", () => {
     pharmacology: { ru: "kharkevich_pharmacology", en: "rang_dale_pharmacology" }
   };
 
-  function openBookReader(subjectId) {
+  function openBookReader(identifier) {
     const modal = document.getElementById("book-reader-modal");
     if (!modal) return;
 
+    // Check if this is a direct PDF book
+    const pdfBook = MedData.books.find(b => b.id === identifier && b.isPdf);
+    if (pdfBook) {
+      modal.classList.remove("hidden");
+      const textBody = document.getElementById("book-text-body");
+      if (textBody) {
+        textBody.innerHTML = `<iframe src="${pdfBook.pdfUrl}" style="width:100%;height:80vh;border:none;background:white;"></iframe>`;
+      }
+      const tocSidebar = document.querySelector(".book-toc-sidebar");
+      if (tocSidebar) tocSidebar.style.display = "none";
+      
+      const layout = document.querySelector(".book-reader-layout");
+      if (layout) layout.style.gridTemplateColumns = "1fr";
+
+      document.getElementById("reader-book-title").textContent = pdfBook.title;
+      document.getElementById("reader-book-author").textContent = "Автор: " + pdfBook.author;
+      document.getElementById("book-reader-close").onclick = () => {
+        modal.classList.add("hidden");
+        if (layout) layout.style.gridTemplateColumns = "300px 1fr";
+        if (tocSidebar) tocSidebar.style.display = "flex";
+      };
+      return;
+    }
+
+    // Restore layouts for normal books
+    const layout = document.querySelector(".book-reader-layout");
+    if (layout) layout.style.gridTemplateColumns = "300px 1fr";
+    const tocSidebar = document.querySelector(".book-toc-sidebar");
+    if (tocSidebar) tocSidebar.style.display = "flex";
+
+    const subjectId = identifier;
     readerState.activeSubjectId = subjectId;
     readerState.activeChapterIndex = 0;
     trackDailyAction("chapter_read");
