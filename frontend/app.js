@@ -1298,7 +1298,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  function generateProceduralQuizzes(systemId, subjectId, count) {
+  function generateProceduralQuizzes(systemId, subjectId, count, difficulty = "medium") {
     const sys = systemData[systemId];
     if (!sys) return [];
     
@@ -1504,6 +1504,29 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    if (difficulty === "easy") {
+      quizzes.forEach(q => {
+        const correctOpt = q.options[q.correctAnswer];
+        const wrongs = [
+          "Кератиновый слой поверхностных чешуек эпидермиса кожи",
+          "Анатомическая костная мозоль трубчатых костей стопы",
+          "Физиологический сон в фазе быстрого движения глаз"
+        ];
+        q.options = shuffle([correctOpt, ...wrongs]);
+        q.correctAnswer = q.options.indexOf(correctOpt);
+        q.question = `🟢 [ПРОСТОЙ] ${q.question}`;
+      });
+    } else if (difficulty === "hard") {
+      quizzes.forEach(q => {
+        q.question = `🔴 [СЛОЖНЫЙ] Ультраструктурный патогенетический анализ: ${q.question.replace(" (Вопрос #", ". Оцените глубокие биохимические каскады, ферментативные константы Km и мембранные транслокации. (Вопрос #")}`;
+        const correctOpt = q.options[q.correctAnswer];
+        q.options = q.options.map(opt => {
+          if (opt === correctOpt) return opt;
+          return `Патологический сдвиг: ${opt.toLowerCase()} с декомпенсацией на уровне транскрипции`;
+        });
+      });
+    }
+
     return quizzes;
   }
 
@@ -1517,6 +1540,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function startQuiz() {
     const sysVal = qzSetupSystem.value;
     const subVal = qzSetupSubject.value;
+    const diffVal = (qzSetupDifficulty && qzSetupDifficulty.value) || "medium";
+    state.currentQuizDifficulty = diffVal;
 
     let filtered = [];
     if (sysVal === "all" && subVal === "all") {
@@ -1524,21 +1549,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const subjects = ["anatomy", "histology", "physiology", "biochemistry", "pathophysiology", "pathology", "pharmacology"];
       systems.forEach(sys => {
         subjects.forEach(sub => {
-          filtered = filtered.concat(generateProceduralQuizzes(sys, sub, 25));
+          filtered = filtered.concat(generateProceduralQuizzes(sys, sub, 25, diffVal));
         });
       });
     } else if (sysVal === "all") {
       const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine"];
       systems.forEach(sys => {
-        filtered = filtered.concat(generateProceduralQuizzes(sys, subVal, 170));
+        filtered = filtered.concat(generateProceduralQuizzes(sys, subVal, 170, diffVal));
       });
     } else if (subVal === "all") {
       const subjects = ["anatomy", "histology", "physiology", "biochemistry", "pathophysiology", "pathology", "pharmacology"];
       subjects.forEach(sub => {
-        filtered = filtered.concat(generateProceduralQuizzes(sysVal, sub, 150));
+        filtered = filtered.concat(generateProceduralQuizzes(sysVal, sub, 150, diffVal));
       });
     } else {
-      filtered = generateProceduralQuizzes(sysVal, subVal, 1000);
+      filtered = generateProceduralQuizzes(sysVal, subVal, 1000, diffVal);
     }
 
         // Limit to max 5 questions for a quick study session
@@ -1635,10 +1660,21 @@ document.addEventListener("DOMContentLoaded", () => {
         const total = state.activeQuizQuestions.length;
         const correct = state.quizScore;
         
-        // Reward: 50 XP per correct answer. 100 XP bonus for perfect score.
-        let xpGain = correct * 50;
+        const difficulty = state.currentQuizDifficulty || "medium";
+        let xpPerQuestion = 100;
+        let perfectBonus = 200;
+
+        if (difficulty === "easy") {
+          xpPerQuestion = 50;
+          perfectBonus = 100;
+        } else if (difficulty === "hard") {
+          xpPerQuestion = 200;
+          perfectBonus = 500;
+        }
+
+        let xpGain = correct * xpPerQuestion;
         if (correct === total) {
-          xpGain += 100;
+          xpGain += perfectBonus;
         }
 
         addXP(xpGain);

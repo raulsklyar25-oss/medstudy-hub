@@ -538,7 +538,7 @@
             <h3>Выбор темы теста</h3>
             <p>Выберите интересующий вас фильтр, чтобы сгенерировать подборку вопросов.</p>
             
-            <div class="quiz-setup-grid">
+            <div class="quiz-setup-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
               <div class="filter-group">
                 <label for="qz-setup-system">Система органов:</label>
                 <select id="qz-setup-system">
@@ -562,6 +562,14 @@
                   <option value="pathophysiology">Патфиз</option>
                   <option value="pathology">Патанат</option>
                   <option value="pharmacology">Фармакология</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="qz-setup-difficulty">Сложность:</label>
+                <select id="qz-setup-difficulty" style="cursor: pointer;">
+                  <option value="easy">🟢 Простой (Easy)</option>
+                  <option value="medium" selected>🟡 Средний (Medium)</option>
+                  <option value="hard">🔴 Сложный (Hard)</option>
                 </select>
               </div>
             </div>
