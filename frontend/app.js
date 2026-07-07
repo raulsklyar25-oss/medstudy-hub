@@ -402,11 +402,11 @@ document.addEventListener("DOMContentLoaded", () => {
       else if (message.includes("⚠")) type = "warning";
     }
     const icon = icons[type] || icons.info;
-    toast.style.cssText = `position:fixed;bottom:24px;right:24px;max-width:420px;min-width:280px;padding:16px 22px;background:${colors[type]||colors.info};backdrop-filter:blur(20px);border:1px solid ${borderColors[type]||borderColors.info};border-radius:14px;color:#e0e0e0;font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;z-index:99998;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:center;gap:12px;transform:translateY(100px) scale(0.9);opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);`;
+    toast.style.cssText = `position:fixed;top:24px;right:24px;max-width:420px;min-width:280px;padding:16px 22px;background:${colors[type]||colors.info};backdrop-filter:blur(20px);border:1px solid ${borderColors[type]||borderColors.info};border-radius:14px;color:#e0e0e0;font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;z-index:99998;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;align-items:center;gap:12px;transform:translateY(-50px) scale(0.9);opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);`;
     toast.innerHTML = `<span style="font-size:22px;flex-shrink:0;">${icon}</span><span style="flex:1;">${message}</span>`;
     document.body.appendChild(toast);
     requestAnimationFrame(() => { requestAnimationFrame(() => { toast.style.transform = "translateY(0) scale(1)"; toast.style.opacity = "1"; }); });
-    setTimeout(() => { toast.style.transform = "translateY(20px) scale(0.95)"; toast.style.opacity = "0"; setTimeout(() => toast.remove(), 400); }, duration);
+    setTimeout(() => { toast.style.transform = "translateY(-20px) scale(0.95)"; toast.style.opacity = "0"; setTimeout(() => toast.remove(), 400); }, duration);
   }
 
   // --- NAVIGATION (Routing) ---
@@ -508,6 +508,18 @@ document.addEventListener("DOMContentLoaded", () => {
       syncSocialStats();
       renderProfileView();
     } else if (viewId === "community") {
+      if (state.activeFriendId) {
+        const friend = friendsList.find(f => f.id === state.activeFriendId);
+        if (friend) {
+          friend.chatHistory.forEach(m => {
+            if (m.sender === "received") m.isRead = true;
+          });
+          saveFriendsToStorage();
+          if (socket && socket.connected) {
+            socket.emit("read_messages", { senderId: state.activeFriendId });
+          }
+        }
+      }
       renderFriendsList();
     } else if (viewId === "forum") {
       renderForumThreads();
