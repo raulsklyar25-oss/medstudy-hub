@@ -3633,11 +3633,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const pdfBook = MedData.books.find(b => b.id === identifier && b.isPdf);
     if (pdfBook) {
       modal.classList.remove("hidden");
+      
+      const container = document.querySelector(".book-reader-container");
+      if (container) {
+        container.style.width = "98vw";
+        container.style.height = "98vh";
+        container.style.borderRadius = "8px";
+      }
+
+      // Hide text book header controls
+      document.querySelectorAll(".reader-control-group").forEach(el => el.style.display = "none");
+      
+      // Hide search bar inside reader
+      const searchBar = document.querySelector(".reader-search-bar");
+      if (searchBar) searchBar.style.display = "none";
+
       const textBody = document.getElementById("book-text-body");
       if (textBody) {
-        textBody.innerHTML = `<iframe src="${pdfBook.pdfUrl}" style="width:100%;height:80vh;border:none;background:white;"></iframe>`;
+        textBody.style.padding = "0";
+        textBody.style.overflow = "hidden";
+        textBody.innerHTML = `<iframe src="${pdfBook.pdfUrl}" style="width:100%;height:100%;border:none;background:white;"></iframe>`;
       }
-      const tocSidebar = document.querySelector(".book-toc-sidebar");
+      
+      const tocSidebar = document.querySelector(".book-toc");
       if (tocSidebar) tocSidebar.style.display = "none";
       
       const layout = document.querySelector(".book-reader-layout");
@@ -3647,17 +3665,44 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("reader-book-author").textContent = "Автор: " + pdfBook.author;
       document.getElementById("book-reader-close").onclick = () => {
         modal.classList.add("hidden");
-        if (layout) layout.style.gridTemplateColumns = "300px 1fr";
-        if (tocSidebar) tocSidebar.style.display = "flex";
+        
+        // Restore standard book layouts
+        if (container) {
+          container.style.width = "90%";
+          container.style.height = "90%";
+          container.style.borderRadius = "16px";
+        }
+        document.querySelectorAll(".reader-control-group").forEach(el => el.style.display = "flex");
+        if (searchBar) searchBar.style.display = "flex";
+        if (textBody) {
+          textBody.style.padding = "30px 40px";
+          textBody.style.overflowY = "auto";
+        }
+        if (layout) layout.style.gridTemplateColumns = "280px 1fr";
+        if (tocSidebar) tocSidebar.style.display = "block";
       };
       return;
     }
 
     // Restore layouts for normal books
+    const container = document.querySelector(".book-reader-container");
+    if (container) {
+      container.style.width = "90%";
+      container.style.height = "90%";
+      container.style.borderRadius = "16px";
+    }
+    document.querySelectorAll(".reader-control-group").forEach(el => el.style.display = "flex");
+    const searchBar = document.querySelector(".reader-search-bar");
+    if (searchBar) searchBar.style.display = "flex";
+    const textBody = document.getElementById("book-text-body");
+    if (textBody) {
+      textBody.style.padding = "30px 40px";
+      textBody.style.overflowY = "auto";
+    }
     const layout = document.querySelector(".book-reader-layout");
-    if (layout) layout.style.gridTemplateColumns = "300px 1fr";
-    const tocSidebar = document.querySelector(".book-toc-sidebar");
-    if (tocSidebar) tocSidebar.style.display = "flex";
+    if (layout) layout.style.gridTemplateColumns = "280px 1fr";
+    const tocSidebar = document.querySelector(".book-toc");
+    if (tocSidebar) tocSidebar.style.display = "block";
 
     const subjectId = identifier;
     readerState.activeSubjectId = subjectId;
