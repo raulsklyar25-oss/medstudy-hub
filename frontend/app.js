@@ -4109,7 +4109,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // If no local profile exists, show account creation modal
     if (!safeStorage.getItem("medstudy_user_profile")) {
       const modal = document.getElementById("account-creation-modal");
-      if (modal) modal.style.display = "flex";
+      if (modal) {
+        modal.classList.remove("hidden");
+        modal.style.display = "flex";
+      }
     }
 
     syncSocialStats();
@@ -4211,7 +4214,10 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Close modal instantly
       const modal = document.getElementById("account-creation-modal");
-      if (modal) modal.style.display = "none";
+      if (modal) {
+        modal.classList.add("hidden");
+        modal.style.display = "none";
+      }
       
       updateProfileUI();
       renderProfileView();
@@ -4286,6 +4292,7 @@ document.addEventListener("DOMContentLoaded", () => {
       safeStorage.removeItem("medstudy_user_profile");
       safeStorage.removeItem("medstudy_jwt_token");
       safeStorage.removeItem("medstudy_friends_list");
+      safeStorage.removeItem("medstudy_authorized");
       window.location.reload();
     };
   }
