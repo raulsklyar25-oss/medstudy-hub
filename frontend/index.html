@@ -1165,7 +1165,43 @@
             <p class="view-subtitle">Определите диагноз по нарастающим симптомам. Чем раньше вы угадаете правильную болезнь, тем больше очков опыта (XP) заработаете!</p>
           </div>
 
-          <div class="quest-layout glass-panel">
+          <!-- Clinical Quest Filter/Setup Panel -->
+          <div class="quiz-selector-container glass-panel" id="quest-setup-panel" style="margin-bottom: 20px;">
+            <h3>Выбор темы квеста</h3>
+            <p>Выберите интересующий вас фильтр, чтобы сгенерировать подборку клинических квестов.</p>
+            <div class="quiz-setup-grid">
+              <div class="filter-group">
+                <label for="quest-setup-system">Система органов:</label>
+                <select id="quest-setup-system">
+                  <option value="all">Все системы</option>
+                  <option value="cardiovascular">Сердечно-сосудистая</option>
+                  <option value="nervous">Нервная</option>
+                  <option value="respiratory">Дыхательная</option>
+                  <option value="digestive">Пищеварительная</option>
+                  <option value="urinary">Мочевыделительная</option>
+                  <option value="endocrine">Эндокринная</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="quest-setup-subject">Предмет:</label>
+                <select id="quest-setup-subject">
+                  <option value="all">Все предметы</option>
+                  <option value="anatomy">Анатомия</option>
+                  <option value="histology">Гистология</option>
+                  <option value="physiology">Нормфиз</option>
+                  <option value="biochemistry">Биохимия</option>
+                  <option value="pathophysiology">Патфиз</option>
+                  <option value="pathology">Патанат</option>
+                  <option value="pharmacology">Фармакология</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+              <button class="btn btn-primary" id="btn-start-quest-game" style="flex: 1; margin: 0;">Начать квест</button>
+            </div>
+          </div>
+
+          <div class="quest-layout glass-panel hidden" id="quest-layout-panel">
             <div class="quest-game-header" style="display: flex; flex-direction: column; gap: 8px;">
               <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <span class="quest-stage-text" id="quest-stage-text">Квест 1 из 6</span>

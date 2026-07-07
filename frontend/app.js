@@ -2110,13 +2110,103 @@ document.addEventListener("DOMContentLoaded", () => {
   state.questGuessedOptions = [];
   state.questActiveOptions = [];
 
+  function generateProceduralClinicalQuests(systemId, subjectId, count) {
+    const sys = systemData[systemId];
+    if (!sys) return [];
+
+    const quests = [];
+    let h = 0;
+    const seedStr = "quest_" + systemId + "_" + subjectId;
+    for (let i = 0; i < seedStr.length; i++) {
+      h = Math.imul(31, h) + seedStr.charCodeAt(i) | 0;
+    }
+    const random = () => {
+      let x = Math.sin(h++) * 10000;
+      return x - Math.floor(x);
+    };
+    const pick = (arr) => arr[Math.floor(random() * arr.length)];
+
+    for (let qNum = 1; qNum <= count; qNum++) {
+      const organ = pick(sys.organs);
+      const cell = pick(sys.cells);
+      const protein = pick(sys.proteins);
+      const disease = pick(sys.diseases);
+      const drug = pick(sys.drugs);
+      const param = pick(sys.parameters);
+      const process = pick(sys.processes);
+
+      const diagnosisName = `${disease.charAt(0).toUpperCase() + disease.slice(1)} (Форма #${qNum})`;
+
+      const symptoms = [
+        `Пациент поступил с жалобами на выраженные функциональные нарушения структуры: "${organ}". Наблюдаются сильные боли.`,
+        `Объективный осмотр выявляет патологические изменения клеток "${cell}" и стойкое отклонение параметра "${param}" от нормы.`,
+        `В биохимическом анализе крови отмечается резкое повышение специфического биохимического маркера "${protein}".`,
+        `При проведении инструментальных методов исследования подтвержден диагноз "${disease}" и нарушение процесса "${process}".`
+      ];
+
+      const explanation = `Клинический случай "${diagnosisName}" характеризуется развитием патологического процесса в области "${organ}" с вовлечением клеток "${cell}". Для купирования рекомендуется применение препаратов группы "${drug}", снижающих выраженность симптомов и нормализующих показатель "${param}".`;
+
+      quests.push({
+        id: `proc_q_${systemId}_${subjectId}_${qNum}`,
+        systemId: systemId,
+        subjectId: subjectId,
+        name: diagnosisName,
+        symptoms: symptoms,
+        explanation: explanation
+      });
+    }
+
+    return quests;
+  }
+
+  function resetQuestUI() {
+    const setup = document.getElementById("quest-setup-panel");
+    const layout = document.getElementById("quest-layout-panel");
+    if (setup) setup.classList.remove("hidden");
+    if (layout) layout.classList.add("hidden");
+    if (state.questOpponentTimer) clearTimeout(state.questOpponentTimer);
+  }
+
   function startQuestSession() {
-    if (!MedData.quests || MedData.quests.length === 0) return;
-    state.currentQuestIndex = Math.floor(Math.random() * MedData.quests.length);
+    const sysSetup = document.getElementById("quest-setup-system");
+    const subSetup = document.getElementById("quest-setup-subject");
+    const sysVal = sysSetup ? sysSetup.value : "all";
+    const subVal = subSetup ? subSetup.value : "all";
+
+    let pool = [];
+    if (sysVal === "all" && subVal === "all") {
+      const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine"];
+      const subjects = ["anatomy", "histology", "physiology", "biochemistry", "pathophysiology", "pathology", "pharmacology"];
+      systems.forEach(sys => {
+        subjects.forEach(sub => {
+          pool = pool.concat(generateProceduralClinicalQuests(sys, sub, 25));
+        });
+      });
+    } else if (sysVal === "all") {
+      const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine"];
+      systems.forEach(sys => {
+        pool = pool.concat(generateProceduralClinicalQuests(sys, subVal, 170));
+      });
+    } else if (subVal === "all") {
+      const subjects = ["anatomy", "histology", "physiology", "biochemistry", "pathophysiology", "pathology", "pharmacology"];
+      subjects.forEach(sub => {
+        pool = pool.concat(generateProceduralClinicalQuests(sysVal, sub, 150));
+      });
+    } else {
+      pool = generateProceduralClinicalQuests(sysVal, subVal, 1000);
+    }
+
+    state.activeQuestPool = pool;
+    state.currentQuestIndex = Math.floor(Math.random() * pool.length);
     state.currentQuestSymptomCount = 1;
     state.questGuessedOptions = [];
     state.questCompleted = false;
-    
+
+    const setup = document.getElementById("quest-setup-panel");
+    const layout = document.getElementById("quest-layout-panel");
+    if (setup) setup.classList.add("hidden");
+    if (layout) layout.classList.remove("hidden");
+
     const opponents = ["Мария_Нейро", "Иван_Кардио", "Дмитрий_ПатФиз", "Аня_Склиф"];
     state.questOpponent = opponents[Math.floor(Math.random() * opponents.length)];
     state.questOpponentState = "thinking";
@@ -2133,17 +2223,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function generateQuestOptions() {
-    const quest = MedData.quests[state.currentQuestIndex];
+    const pool = state.activeQuestPool || [];
+    const quest = pool[state.currentQuestIndex];
     if (!quest) return;
 
-    // Get 4 random distractors from other diseases in the database
-    const distractors = MedData.quests
+    const distractors = pool
       .filter(q => q.id !== quest.id)
       .map(q => q.name);
     
     const selectedDistractors = shuffleArray([...distractors]).slice(0, 4);
     
-    // Combine correct answer and distractors, then shuffle
     const options = [quest.name, ...selectedDistractors];
     state.questActiveOptions = shuffleArray(options);
   }
@@ -2372,9 +2461,37 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function setupQuestListeners() {
+    const startBtn = document.getElementById("btn-start-quest-game");
+    if (startBtn) {
+      startBtn.onclick = () => {
+        startQuestSession();
+      };
+    }
+
     if (questNextBtn) {
       questNextBtn.onclick = () => {
-        startQuestSession();
+        if (state.activeQuestPool && state.activeQuestPool.length > 0) {
+          state.currentQuestIndex = Math.floor(Math.random() * state.activeQuestPool.length);
+          state.currentQuestSymptomCount = 1;
+          state.questGuessedOptions = [];
+          state.questCompleted = false;
+
+          const opponents = ["Мария_Нейро", "Иван_Кардио", "Дмитрий_ПатФиз", "Аня_Склиф"];
+          state.questOpponent = opponents[Math.floor(Math.random() * opponents.length)];
+          state.questOpponentState = "thinking";
+          
+          const opponentText = document.getElementById("quest-opponent-text");
+          if (opponentText) {
+            opponentText.textContent = `Соперник: ${state.questOpponent} (думает...)`;
+            opponentText.style.color = "var(--accent-pink)";
+          }
+
+          generateQuestOptions();
+          renderQuestCard();
+          triggerOpponentSimulation();
+        } else {
+          resetQuestUI();
+        }
       };
     }
   }
