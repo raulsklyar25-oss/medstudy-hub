@@ -3826,13 +3826,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     socket.off("invite_received").on("invite_received", (data) => {
-      const typeStr = data.type === "duel" ? "Дуэль на карточках" : "Совместный тест";
-      const accept = confirm(`Игрок ${data.senderName} приглашает вас сыграть: ${typeStr}. Принять приглашение?`);
-      if (accept) {
-        socket.emit("accept_invite", { senderId: data.senderId, type: data.type });
-      } else {
-        socket.emit("decline_invite", { senderId: data.senderId });
-      }
+      showInviteModal(
+        data.senderName,
+        data.type,
+        () => {
+          socket.emit("accept_invite", { senderId: data.senderId, type: data.type });
+        },
+        () => {
+          socket.emit("decline_invite", { senderId: data.senderId });
+        }
+      );
     });
 
     socket.off("invite_declined").on("invite_declined", (data) => {
@@ -4965,6 +4968,70 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     const questId = questMap[actionType];
     if (questId) completeDailyQuest(questId);
+  }
+
+  function showInviteModal(senderName, type, onAccept, onDecline) {
+    const existing = document.getElementById("multiplayer-invite-modal");
+    if (existing) existing.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "multiplayer-invite-modal";
+    modal.style.cssText = `
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(5, 8, 16, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.3s ease;
+    `;
+
+    const typeText = type === "duel" ? "Дуэль на флеш-карточках ⚔️" : "Совместный тест 📝";
+
+    modal.innerHTML = `
+      <div class="glass-panel" style="
+        width: 380px; padding: 25px; border-radius: 16px;
+        background: rgba(13, 20, 38, 0.95);
+        border: 1px solid rgba(0, 242, 254, 0.3);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        text-align: center;
+        transform: scale(0.9); transition: transform 0.3s ease;
+      ">
+        <span style="font-size: 40px; display: block; margin-bottom: 15px;">🎮</span>
+        <h3 style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #fff;">Вызов на игру!</h3>
+        <p style="margin: 0 0 20px 0; font-size: 13.5px; color: var(--text-muted); line-height: 1.5;">
+          Игрок <strong style="color: var(--accent-cyan);">${senderName}</strong> приглашает вас сыграть в:<br>
+          <strong style="color: var(--accent-pink);">${typeText}</strong>
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button id="invite-btn-decline" class="btn btn-outline" style="flex: 1; border-color: rgba(255,255,255,0.15); color: #fff;">Отклонить</button>
+          <button id="invite-btn-accept" class="btn btn-primary" style="flex: 1; font-weight: bold;">Принять</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    requestAnimationFrame(() => {
+      modal.style.opacity = "1";
+      modal.querySelector("div").style.transform = "scale(1)";
+    });
+
+    const close = () => {
+      modal.style.opacity = "0";
+      modal.querySelector("div").style.transform = "scale(0.9)";
+      setTimeout(() => modal.remove(), 300);
+    };
+
+    modal.querySelector("#invite-btn-accept").onclick = () => {
+      close();
+      onAccept();
+    };
+
+    modal.querySelector("#invite-btn-decline").onclick = () => {
+      close();
+      onDecline();
+    };
   }
 
   // Run the initialization
