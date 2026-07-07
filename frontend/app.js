@@ -1595,42 +1595,157 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // --- CLINICAL CASES MODULE ---
-      function renderClinicalCasesList() {
-        if (!casesListContainer) return;
-        casesListContainer.innerHTML = "";
-        MedData.clinicalCases.forEach(c => {
-          const card = document.createElement("div");
-          card.className = "case-card glass-panel";
-          card.innerHTML = `
-            <div style="font-size:24px; margin-bottom:10px;">📋</div>
-            <h3>${c.title}</h3>
-            <p>${c.description.substring(0, 160)}...</p>
-            <div class="case-card-footer">
-              <span style="font-size:11px; color:var(--accent-rose); font-weight:600;">СЛОЖНОСТЬ: ${c.difficulty}</span>
-              <button class="btn btn-primary btn-sm">Открыть кейс</button>
-            </div>
-          `;
-          
-          card.addEventListener("click", () => openCaseWorkspace(c));
-          casesListContainer.appendChild(card);
+  function generateProceduralClinicalCases(systemId, subjectId, count) {
+    const sys = systemData[systemId];
+    if (!sys) return [];
+
+    const cases = [];
+    let h = 0;
+    const seedStr = "case_" + systemId + "_" + subjectId;
+    for (let i = 0; i < seedStr.length; i++) {
+      h = Math.imul(31, h) + seedStr.charCodeAt(i) | 0;
+    }
+    const random = () => {
+      let x = Math.sin(h++) * 10000;
+      return x - Math.floor(x);
+    };
+    const pick = (arr) => arr[Math.floor(random() * arr.length)];
+    const shuffle = (arr) => {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+
+    for (let cNum = 1; cNum <= count; cNum++) {
+      const organ = pick(sys.organs);
+      const cell = pick(sys.cells);
+      const protein = pick(sys.proteins);
+      const disease = pick(sys.diseases);
+      const drug = pick(sys.drugs);
+      const param = pick(sys.parameters);
+      const process = pick(sys.processes);
+
+      const title = `Интерактивный кейс: Патология органа ${organ} (#${cNum})`;
+      const desc = `Пациент поступил с выраженной клинической картиной нарушения в области: "${organ}". Наблюдается прогрессирующее расстройство клеток типа "${cell}" и изменение функционального параметра "${param}". Зафиксированы признаки процесса "${process}". Требуется провести верификацию диагноза и терапию.`;
+
+      const s1Correct = `Провести забор крови на уровень специфического белка "${protein}"`;
+      const s1Wrongs = ["Назначить физиотерапевтическое лечение", "Ограничиться динамическим наблюдением", "Провести пробу с дозированной физической нагрузкой"];
+      const s1Opts = shuffle([s1Correct, ...s1Wrongs]);
+      const s1Ans = s1Opts.indexOf(s1Correct);
+
+      const s2Correct = `Повреждение клеток "${cell}" и критическое изменение параметра "${param}"`;
+      const s2Wrongs = ["Физиологическая адаптация тканей без повреждения мембран", "Острый психосоматический синдром", "Воспалительная реакция с повышением секреции желчи"];
+      const s2Opts = shuffle([s2Correct, ...s2Wrongs]);
+      const s2Ans = s2Opts.indexOf(s2Correct);
+
+      const s3Correct = `Назначить лекарственную терапию с использованием препарата "${drug}"`;
+      const s3Wrongs = ["Направить на санаторно-курортное лечение", "Рекомендовать дыхательную гимнастику", "Назначить неспецифические поливитамины"];
+      const s3Opts = shuffle([s3Correct, ...s3Wrongs]);
+      const s3Ans = s3Opts.indexOf(s3Correct);
+
+      cases.push({
+        id: `proc_case_${systemId}_${subjectId}_${cNum}`,
+        systemId: systemId,
+        subjectId: subjectId,
+        title: title,
+        description: desc,
+        difficulty: cNum % 3 === 0 ? "Высокая" : (cNum % 2 === 0 ? "Средняя" : "Легкая"),
+        steps: [
+          {
+            question: `Шаг 1: Какое первичное диагностическое действие наиболее обоснованно для подтверждения диагноза?`,
+            options: s1Opts,
+            correctAnswer: s1Ans,
+            explanation: `Для верификации патологии структуры "${organ}" ключевым тестом является определение биохимического уровня "${protein}", что отражает повреждение клеточных мембран.`
+          },
+          {
+            question: `Шаг 2: Какой патогенетический механизм лежит в основе наблюдаемых симптомов у пациента?`,
+            options: s2Opts,
+            correctAnswer: s2Ans,
+            explanation: `Патофизиология данного синдрома вызвана непосредственным дефектом структуры клеток "${cell}" и стойким сдвигом показателя "${param}".`
+          },
+          {
+            question: `Шаг 3: Выберите оптимальный план фармакотерапии для стабилизации состояния больного.`,
+            options: s3Opts,
+            correctAnswer: s3Ans,
+            explanation: `Терапией выбора является применение селективного препарата "${drug}", который блокирует/стимулирует мишени и купирует симптомы заболевания "${disease}".`
+          }
+        ]
+      });
+    }
+
+    return cases;
+  }
+
+  function renderClinicalCasesList() {
+    if (!casesListContainer) return;
+    casesListContainer.innerHTML = "";
+
+    const sysSetup = document.getElementById("cases-setup-system");
+    const subSetup = document.getElementById("cases-setup-subject");
+    const sysVal = sysSetup ? sysSetup.value : "all";
+    const subVal = subSetup ? subSetup.value : "all";
+
+    let pool = [];
+    if (sysVal === "all" && subVal === "all") {
+      const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine"];
+      const subjects = ["anatomy", "histology", "physiology", "biochemistry", "pathophysiology", "pathology", "pharmacology"];
+      systems.forEach(sys => {
+        subjects.forEach(sub => {
+          pool = pool.concat(generateProceduralClinicalCases(sys, sub, 1));
         });
-      }
+      });
+    } else if (sysVal === "all") {
+      const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine"];
+      systems.forEach(sys => {
+        pool = pool.concat(generateProceduralClinicalCases(sys, subVal, 5));
+      });
+    } else if (subVal === "all") {
+      const subjects = ["anatomy", "histology", "physiology", "biochemistry", "pathophysiology", "pathology", "pharmacology"];
+      subjects.forEach(sub => {
+        pool = pool.concat(generateProceduralClinicalCases(sysVal, sub, 5));
+      });
+    } else {
+      pool = generateProceduralClinicalCases(sysVal, subVal, 12);
+    }
 
-      function openCaseWorkspace(medicalCase) {
-        state.activeCase = medicalCase;
-        state.activeCaseStepIndex = 0;
-        state.casePointsEarned = 150; // starts with full points
+    const displayPool = pool.slice(0, 20);
+    displayPool.forEach(c => {
+      const card = document.createElement("div");
+      card.className = "case-card glass-panel";
+      card.innerHTML = `
+        <div style="font-size:24px; margin-bottom:10px;">📋</div>
+        <h3>${c.title}</h3>
+        <p>${c.description.substring(0, 160)}...</p>
+        <div class="case-card-footer">
+          <span style="font-size:11px; color:var(--accent-rose); font-weight:600;">СЛОЖНОСТЬ: ${c.difficulty}</span>
+          <button class="btn btn-primary btn-sm">Открыть кейс</button>
+        </div>
+      `;
+      
+      card.addEventListener("click", () => openCaseWorkspace(c));
+      casesListContainer.appendChild(card);
+    });
+  }
 
-        // Hide lists
-        casesListContainer.classList.add("hidden");
-        caseCompletedPanel.classList.add("hidden");
-        caseActivePanel.classList.remove("hidden");
+  function openCaseWorkspace(medicalCase) {
+    state.activeCase = medicalCase;
+    state.activeCaseStepIndex = 0;
+    state.casePointsEarned = 150;
 
-        caseWorkspaceTitle.textContent = medicalCase.title;
-        casePatientHistory.innerHTML = `<strong>Клиническая картина:</strong><br><br>${medicalCase.description}`;
-        
-        renderCaseStep();
-      }
+    const setup = document.getElementById("cases-setup-panel");
+    if (setup) setup.classList.add("hidden");
+    casesListContainer.classList.add("hidden");
+    caseCompletedPanel.classList.add("hidden");
+    caseActivePanel.classList.remove("hidden");
+
+    caseWorkspaceTitle.textContent = medicalCase.title;
+    casePatientHistory.innerHTML = `<strong>Клиническая картина:</strong><br><br>${medicalCase.description}`;
+    
+    renderCaseStep();
+  }
 
       function renderCaseStep() {
         caseStepFeedback.classList.add("hidden");
@@ -1675,6 +1790,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function setupCasesListeners() {
+        const startSearchBtn = document.getElementById("btn-start-cases-search");
+        if (startSearchBtn) {
+          startSearchBtn.onclick = () => {
+            renderClinicalCasesList();
+          };
+        }
+
         caseBtnNextStep.addEventListener("click", () => {
           state.activeCaseStepIndex++;
           if (state.activeCaseStepIndex >= state.activeCase.steps.length) {
@@ -1743,6 +1865,8 @@ document.addEventListener("DOMContentLoaded", () => {
       function closeCaseWorkspace() {
         caseActivePanel.classList.add("hidden");
         caseCompletedPanel.classList.add("hidden");
+        const setup = document.getElementById("cases-setup-panel");
+        if (setup) setup.classList.remove("hidden");
         casesListContainer.classList.remove("hidden");
       }
 

@@ -636,6 +636,42 @@
             <p class="view-subtitle">Почувствуйте себя врачом у постели больного. Проведите дифференциальную диагностику и выберите правильное лечение.</p>
           </div>
 
+          <!-- Clinical Cases Filter/Setup Panel -->
+          <div class="quiz-selector-container glass-panel" id="cases-setup-panel" style="margin-bottom: 20px;">
+            <h3>Выбор темы клинических кейсов</h3>
+            <p>Выберите интересующий вас фильтр, чтобы сгенерировать подборку интерактивных кейсов.</p>
+            <div class="quiz-setup-grid">
+              <div class="filter-group">
+                <label for="cases-setup-system">Система органов:</label>
+                <select id="cases-setup-system">
+                  <option value="all">Все системы</option>
+                  <option value="cardiovascular">Сердечно-сосудистая</option>
+                  <option value="nervous">Нервная</option>
+                  <option value="respiratory">Дыхательная</option>
+                  <option value="digestive">Пищеварительная</option>
+                  <option value="urinary">Мочевыделительная</option>
+                  <option value="endocrine">Эндокринная</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="cases-setup-subject">Предмет:</label>
+                <select id="cases-setup-subject">
+                  <option value="all">Все предметы</option>
+                  <option value="anatomy">Анатомия</option>
+                  <option value="histology">Гистология</option>
+                  <option value="physiology">Нормфиз</option>
+                  <option value="biochemistry">Биохимия</option>
+                  <option value="pathophysiology">Патфиз</option>
+                  <option value="pathology">Патанат</option>
+                  <option value="pharmacology">Фармакология</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+              <button class="btn btn-primary" id="btn-start-cases-search" style="flex: 1; margin: 0;">Сгенерировать кейсы</button>
+            </div>
+          </div>
+
           <!-- Case List selection -->
           <div class="cases-list-grid" id="cases-list-container">
             <!-- Dynamically populated cases -->
