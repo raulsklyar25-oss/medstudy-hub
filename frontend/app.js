@@ -3641,12 +3641,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const friend = friendsList.find(f => f.id === friendId);
     if (!friend) return;
 
+    // Mark received messages from this friend as read locally
+    friend.chatHistory.forEach(m => {
+      if (m.sender === "received") m.isRead = true;
+    });
+    saveFriendsToStorage();
+
+    // Emit read event to notify the friend
+    if (socket && socket.connected) {
+      socket.emit("read_messages", { senderId: friendId });
+    }
+
     document.getElementById("chat-header-name").textContent = friend.name;
     document.getElementById("chat-header-avatar").textContent = friend.avatar;
     
     const statusLabel = document.getElementById("chat-header-status");
-    statusLabel.textContent = friend.statusText;
-    statusLabel.className = (friend.status === "offline") ? "text-muted" : "accent-cyan";
+    statusLabel.textContent = friend.status === "online" ? "В сети" : (friend.specialty || "Не в сети");
+    statusLabel.className = (friend.status === "online") ? "accent-cyan" : "text-muted";
 
     renderChatMessages();
   };
@@ -3662,9 +3673,15 @@ document.addEventListener("DOMContentLoaded", () => {
     friend.chatHistory.forEach(msg => {
       const bubble = document.createElement("div");
       bubble.className = `chat-bubble ${msg.sender}`;
+      const tickHtml = msg.sender === "sent"
+        ? `<span style="margin-left: 4px; font-weight: bold; color: ${msg.isRead ? '#00f2fe' : 'rgba(255,255,255,0.4)'};">${msg.isRead ? '✓✓' : '✓'}</span>`
+        : '';
       bubble.innerHTML = `
         <div>${msg.text}</div>
-        <div style="text-align: right; font-size: 9px; opacity: 0.6; margin-top: 4px;">${msg.time}</div>
+        <div style="text-align: right; font-size: 9px; opacity: 0.6; margin-top: 4px; display: flex; justify-content: flex-end; align-items: center;">
+          <span>${msg.time}</span>
+          ${tickHtml}
+        </div>
       `;
       container.appendChild(bubble);
     });
@@ -3721,6 +3738,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (unconfirmed) {
             unconfirmed.time = msg.time;
             unconfirmed.isConfirmed = true;
+            saveFriendsToStorage();
             if (state.activeFriendId === friend.id) {
               renderChatMessages();
             }
@@ -3730,15 +3748,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const exists = friend.chatHistory.some(m => m.text === msg.text && (m.time === msg.time || m.isConfirmed));
         if (!exists) {
+          const isCurrentChatActive = (state.activeFriendId === friend.id);
+          
           friend.chatHistory.push({
             sender: msg.senderId === state.userProfile.id ? "sent" : "received",
             text: msg.text,
             time: msg.time,
-            isConfirmed: true
+            isConfirmed: true,
+            isRead: msg.senderId === state.userProfile.id ? false : isCurrentChatActive
           });
-          if (state.activeFriendId === friend.id) {
+          
+          saveFriendsToStorage();
+
+          if (isCurrentChatActive) {
             renderChatMessages();
+            if (msg.senderId !== state.userProfile.id) {
+              socket.emit("read_messages", { senderId: friend.id });
+            }
+          } else {
+            if (msg.senderId !== state.userProfile.id) {
+              showToast(`📬 Новое сообщение от ${msg.senderName}: "${msg.text.substring(0, 30)}${msg.text.length > 30 ? '...' : ''}"`, "info", 6000);
+            }
           }
+        }
+      }
+    });
+
+    socket.off("online_users").on("online_users", (onlineIds) => {
+      console.log("[SOCKET] Received online users list:", onlineIds);
+      friendsList.forEach(f => {
+        f.status = onlineIds.includes(f.id) ? "online" : "offline";
+      });
+      renderFriendsList();
+    });
+
+    socket.off("user_presence").on("user_presence", (data) => {
+      console.log("[SOCKET] Received user presence update:", data);
+      const friend = friendsList.find(f => f.id === data.userId);
+      if (friend) {
+        friend.status = data.status;
+        renderFriendsList();
+      }
+    });
+
+    socket.off("messages_read").on("messages_read", (data) => {
+      console.log("[SOCKET] Received messages_read for reader:", data.readerId);
+      const friend = friendsList.find(f => f.id === data.readerId);
+      if (friend) {
+        friend.chatHistory.forEach(m => {
+          if (m.sender === "sent") m.isRead = true;
+        });
+        saveFriendsToStorage();
+        if (state.activeFriendId === data.readerId) {
+          renderChatMessages();
         }
       }
     });
@@ -3818,6 +3880,8 @@ document.addEventListener("DOMContentLoaded", () => {
       time: formattedTime,
       isConfirmed: false
     });
+
+    saveFriendsToStorage();
 
     input.value = "";
     renderChatMessages();
@@ -4671,8 +4735,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     
     // Save to localStorage
-    const savedFriends = friendsList.map(f => ({ id: f.id, name: f.name, avatar: f.avatar, specialty: f.specialty, status: f.status }));
-    safeStorage.setItem("medstudy_friends_list", JSON.stringify(savedFriends));
+    saveFriendsToStorage();
     
     renderFriendsList();
     showToast(`✅ ${user.name} добавлен(а) в друзья!`, "success");
@@ -4757,12 +4820,24 @@ document.addEventListener("DOMContentLoaded", () => {
               avatar: sf.avatar,
               specialty: sf.specialty,
               status: sf.status || (botUser ? botUser.status : "В сети"),
-              chatHistory: []
+              chatHistory: sf.chatHistory || []
             });
           }
         });
       } catch(e) {}
     }
+  }
+
+  function saveFriendsToStorage() {
+    const savedFriends = friendsList.map(f => ({
+      id: f.id,
+      name: f.name,
+      avatar: f.avatar,
+      specialty: f.specialty,
+      status: f.status,
+      chatHistory: f.chatHistory || []
+    }));
+    safeStorage.setItem("medstudy_friends_list", JSON.stringify(savedFriends));
   }
 
   // --- DAILY QUESTS SYSTEM ---

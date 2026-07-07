@@ -209,7 +209,15 @@ app.get("/api/users/search", async (req, res) => {
       attributes: ['id', 'username', 'avatar', 'specialty', 'level', 'rank', 'nameColor'],
       limit: 50
     });
-    res.json({ users });
+    
+    const activeIds = Array.from(connectedUsers.values()).map(u => u.id);
+    const usersWithOnlineStatus = users.map(u => {
+      const uJson = u.toJSON();
+      uJson.online = activeIds.includes(uJson.id);
+      return uJson;
+    });
+    
+    res.json({ users: usersWithOnlineStatus });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -370,6 +378,13 @@ io.on("connection", (socket) => {
     connectedUsers.set(socket.id, user);
     socket.join(`user_${user.id}`); // private room for direct messages
     console.log(`[SOCKET SUCCESS] User ${user.username} (${user.id}) registered on socket ${socket.id}`);
+
+    // Send the list of currently online users to this client
+    const onlineIds = Array.from(connectedUsers.values()).map(u => u.id);
+    socket.emit("online_users", onlineIds);
+
+    // Broadcast that this user is now online
+    socket.broadcast.emit("user_presence", { userId: user.id, status: "online" });
   });
 
   // 1. Social Real-Time Chat (Direct Messages)
@@ -397,6 +412,16 @@ io.on("connection", (socket) => {
     // Send confirmation back to sender
     messagePayload.isSelf = true;
     socket.emit("receive_message", messagePayload);
+  });
+
+  socket.on("read_messages", (data) => {
+    // data: { senderId }
+    const reader = connectedUsers.get(socket.id);
+    if (!reader) return;
+    console.log(`[SOCKET] User ${reader.username} (${reader.id}) read messages from ${data.senderId}`);
+    io.to(`user_${data.senderId}`).emit("messages_read", {
+      readerId: reader.id
+    });
   });
 
   // 2. Real-Time Card Duels Matchmaking
@@ -570,6 +595,9 @@ io.on("connection", (socket) => {
       // Remove from queue if they were waiting
       const idx = duelQueue.findIndex(u => u.id === user.id);
       if (idx !== -1) duelQueue.splice(idx, 1);
+      
+      // Broadcast that this user went offline
+      io.emit("user_presence", { userId: user.id, status: "offline" });
     }
     connectedUsers.delete(socket.id);
     console.log("Client disconnected:", socket.id);
