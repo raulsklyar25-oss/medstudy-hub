@@ -3649,10 +3649,46 @@ document.addEventListener("DOMContentLoaded", () => {
       if (searchBar) searchBar.style.display = "none";
 
       const textBody = document.getElementById("book-text-body");
+      
+      const isLargeFile = pdfBook.id === "first_aid_ru" || pdfBook.id === "grays_anatomy_students";
+      const isGitHubPages = window.location.hostname.includes("github.io");
+
       if (textBody) {
         textBody.style.padding = "0";
         textBody.style.overflow = "hidden";
-        textBody.innerHTML = `<iframe src="${pdfBook.pdfUrl}" style="width:100%;height:100%;border:none;background:white;"></iframe>`;
+        
+        if (isLargeFile && isGitHubPages) {
+          textBody.innerHTML = `
+            <div class="pdf-fallback-overlay" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:40px; text-align:center; color:#fff; background: rgba(10,15,30,0.6);">
+              <div style="font-size:48px; margin-bottom:20px;">📂</div>
+              <h3 style="margin-top:0; font-size:18px; color:var(--accent-cyan);">Файл отсутствует на сервере GitHub</h3>
+              <p style="max-width:500px; color:var(--text-muted); font-size:13.5px; margin: 10px auto 25px auto; line-height: 1.6;">
+                Файл <strong>"${pdfBook.title}"</strong> превышает лимит GitHub (100MB) и не может храниться в удаленном репозитории.
+                <br><br>
+                Пожалуйста, выберите этот файл с вашего устройства для мгновенного просмотра в браузере.
+              </p>
+              <input type="file" id="pdf-fallback-input" accept=".pdf" style="display:none;">
+              <button class="btn btn-primary" id="btn-pdf-fallback-select" style="margin:0;">Выбрать файл на устройстве</button>
+            </div>
+          `;
+          
+          setTimeout(() => {
+            const selectBtn = document.getElementById("btn-pdf-fallback-select");
+            const fileInput = document.getElementById("pdf-fallback-input");
+            if (selectBtn && fileInput) {
+              selectBtn.onclick = () => fileInput.click();
+              fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const fileUrl = URL.createObjectURL(file);
+                  textBody.innerHTML = `<iframe src="${fileUrl}" style="width:100%;height:100%;border:none;background:white;"></iframe>`;
+                }
+              };
+            }
+          }, 50);
+        } else {
+          textBody.innerHTML = `<iframe src="${pdfBook.pdfUrl}" style="width:100%;height:100%;border:none;background:white;"></iframe>`;
+        }
       }
       
       const tocSidebar = document.querySelector(".book-toc");
