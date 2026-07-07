@@ -2452,7 +2452,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderQuestCard() {
-    const quest = MedData.quests[state.currentQuestIndex];
+    const quest = state.activeQuestPool[state.currentQuestIndex];
     if (!quest) return;
 
     // Stage updates
@@ -2512,7 +2512,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleQuestAnswer(selectedOption, btnElement) {
     if (state.questCompleted) return;
-    const quest = MedData.quests[state.currentQuestIndex];
+    const quest = state.activeQuestPool[state.currentQuestIndex];
     if (!quest) return;
 
     if (selectedOption === quest.name) {
@@ -2658,19 +2658,13 @@ document.addEventListener("DOMContentLoaded", () => {
           state.questGuessedOptions = [];
           state.questCompleted = false;
 
-          const opponents = ["Мария_Нейро", "Иван_Кардио", "Дмитрий_ПатФиз", "Аня_Склиф"];
-          state.questOpponent = opponents[Math.floor(Math.random() * opponents.length)];
-          state.questOpponentState = "thinking";
-          
           const opponentText = document.getElementById("quest-opponent-text");
           if (opponentText) {
-            opponentText.textContent = `Соперник: ${state.questOpponent} (думает...)`;
-            opponentText.style.color = "var(--accent-pink)";
+            opponentText.style.display = "none";
           }
 
           generateQuestOptions();
           renderQuestCard();
-          triggerOpponentSimulation();
         } else {
           resetQuestUI();
         }
