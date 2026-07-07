@@ -1379,46 +1379,22 @@ const MedData = {
 
   books: [
     {
-      subjectId: "anatomy",
-      title: "Анатомия по Грею (Gray's Anatomy)",
-      author: "Susan Standring",
-      description: "Мировой бестселлер и главный справочник по анатомии человека для врачей и студентов."
-    },
-    {
-      subjectId: "histology",
-      title: "Гистология по Юнкера (Junqueira's Basic Histology)",
-      author: "Anthony L. Mescher",
-      description: "Лучший мировой учебник по гистологии с детальными цветными микрофотографиями и схемами."
-    },
-    {
+      id: "schmidt_vol1",
       subjectId: "physiology",
-      title: "Учебник медицинской физиологии Гайтона и Холла",
-      author: "John E. Hall",
-      description: "Фундаментальный учебник, объясняющий принципы работы организма простым и понятным языком."
+      title: "Fiziology (Tom 1)",
+      author: "R. Shmidt",
+      description: "Fundamentalnyy uchebnik normalnoy fiziologii. Tom 1.",
+      isPdf: true,
+      pdfUrl: "assets/books/Schmidt_Vol1.pdf"
     },
     {
-      subjectId: "biochemistry",
-      title: "Наглядная биохимия Харпера (Harper's Illustrated Biochemistry)",
-      author: "Victor W. Rodwell et al.",
-      description: "Современное руководство по биохимии человека с акцентом на клиническое значение процессов."
-    },
-    {
-      subjectId: "pathophysiology",
-      title: "Патофизиология заболеваний (Pathophysiology of Disease)",
-      author: "Gary D. Hammer, Stephen J. McPhee",
-      description: "Отличный мост между фундаментальной наукой и клинической практикой."
-    },
-    {
-      subjectId: "pathology",
-      title: "Основы патологии по Роббинсу и Котрану",
-      author: "Vinay Kumar, Abul K. Abbas, Jon C. Aster",
-      description: "Библия патологической анатомии, подробно раскрывающая морфологию болезней."
-    },
-    {
-      subjectId: "pharmacology",
-      title: "Фармакология Ранга и Дейла (Rang & Dale's Pharmacology)",
-      author: "James M. Ritter et al.",
-      description: "Классическое руководство, подробно описывающее механизмы действия лекарств на рецепторном уровне."
+      id: "schmidt_vol2",
+      subjectId: "physiology",
+      title: "Fiziology (Tom 2)",
+      author: "R. Shmidt",
+      description: "Fundamentalnyy uchebnik normalnoy fiziologii. Tom 2.",
+      isPdf: true,
+      pdfUrl: "assets/books/Schmidt_Vol2.pdf"
     }
   ]
 };

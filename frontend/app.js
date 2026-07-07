@@ -1354,7 +1354,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <div style="margin-top: 10px; text-align: right;"><span class="btn btn-outline btn-xs" style="font-size: 11px; padding: 3px 8px;">📖 Читать книгу</span></div>
           `;
           card.addEventListener("click", () => {
-            openBookReader(book.subjectId);
+            openBookReader(book.id || book.subjectId);
           });
           booksListContainer.appendChild(card);
         });
