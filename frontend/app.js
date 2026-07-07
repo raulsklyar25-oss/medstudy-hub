@@ -3674,7 +3674,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const bubble = document.createElement("div");
       bubble.className = `chat-bubble ${msg.sender}`;
       const tickHtml = msg.sender === "sent"
-        ? `<span style="margin-left: 4px; font-weight: bold; color: ${msg.isRead ? '#00f2fe' : 'rgba(255,255,255,0.4)'};">${msg.isRead ? '✓✓' : '✓'}</span>`
+        ? `<span style="margin-left: 4px; font-weight: bold; color: #030814; opacity: ${msg.isRead ? '1' : '0.45'};">${msg.isRead ? '✓✓' : '✓'}</span>`
         : '';
       bubble.innerHTML = `
         <div>${msg.text}</div>
@@ -3744,32 +3744,26 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             return;
           }
+          return; // Skip duplicate rendering for our own confirmed message
         }
 
-        const exists = friend.chatHistory.some(m => m.text === msg.text && (m.time === msg.time || m.isConfirmed));
-        if (!exists) {
-          const isCurrentChatActive = (state.activeFriendId === friend.id);
-          
-          friend.chatHistory.push({
-            sender: msg.senderId === state.userProfile.id ? "sent" : "received",
-            text: msg.text,
-            time: msg.time,
-            isConfirmed: true,
-            isRead: msg.senderId === state.userProfile.id ? false : isCurrentChatActive
-          });
-          
-          saveFriendsToStorage();
+        const isCurrentChatActive = (state.activeFriendId === friend.id);
+        
+        friend.chatHistory.push({
+          sender: "received",
+          text: msg.text,
+          time: msg.time,
+          isConfirmed: true,
+          isRead: isCurrentChatActive
+        });
+        
+        saveFriendsToStorage();
 
-          if (isCurrentChatActive) {
-            renderChatMessages();
-            if (msg.senderId !== state.userProfile.id) {
-              socket.emit("read_messages", { senderId: friend.id });
-            }
-          } else {
-            if (msg.senderId !== state.userProfile.id) {
-              showToast(`📬 Новое сообщение от ${msg.senderName}: "${msg.text.substring(0, 30)}${msg.text.length > 30 ? '...' : ''}"`, "info", 6000);
-            }
-          }
+        if (isCurrentChatActive) {
+          renderChatMessages();
+          socket.emit("read_messages", { senderId: friend.id });
+        } else {
+          showToast(`📬 Новое сообщение от ${msg.senderName}: "${msg.text.substring(0, 30)}${msg.text.length > 30 ? '...' : ''}"`, "info", 6000);
         }
       }
     });
@@ -3886,7 +3880,7 @@ document.addEventListener("DOMContentLoaded", () => {
     input.value = "";
     renderChatMessages();
 
-    if (socket && socket.connected) {
+    if (socket) {
       console.log(`[SOCKET] Emitting send_message to receiver: ${friend.id}, text: "${userText}"`);
       socket.emit("send_message", {
         receiverId: friend.id,
@@ -3894,8 +3888,8 @@ document.addEventListener("DOMContentLoaded", () => {
         time: formattedTime
       });
     } else {
-      console.warn(`[SOCKET WARN] Cannot emit send_message. socket.connected: ${socket ? socket.connected : "no socket"}`);
-      showToast("Нет подключения к серверу. Сообщение не отправлено.", "error");
+      console.warn(`[SOCKET WARN] Cannot emit send_message. socket is null`);
+      showToast("Сервис сообщений недоступен.", "error");
     }
   }
 
