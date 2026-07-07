@@ -253,22 +253,7 @@ app.post("/api/forum/topics", authenticateToken, async (req, res) => {
       authorAvatar: authorAvatar || "🩺"
     });
 
-    // TRIGGER BOT AUTO-REPLY AFTER 5 SECONDS
-    setTimeout(async () => {
-      const bots = [
-        { author: "Мария_Нейро", avatar: "🧠", text: "Интересный клинический вопрос. При разборе патогенеза этого состояния крайне важно помнить о вовлечении синаптических медиаторов." },
-        { author: "Иван_Кардио", avatar: "🫀", text: "С точки зрения сердечно-сосудистой гемодинамики, здесь видна явная перегрузка объемом. Проверьте фракцию выброса." },
-        { author: "Дмитрий_ПатФиз", avatar: "🔬", text: "Классический пример повреждения мембран! Не забывайте заглянуть в раздел интерактивной карты связей в меню." },
-        { author: "Кирилл_Фарма", avatar: "💊", text: "Коллеги, в данном случае целесообразно рассмотреть назначение селективных ингибиторов или петлевых диуретиков." }
-      ];
-      const selectedBot = bots[Math.floor(Math.random() * bots.length)];
-      await ForumReply.create({
-        topicId: topic.id,
-        authorName: selectedBot.author,
-        authorAvatar: selectedBot.avatar,
-        content: selectedBot.text + "\n\nРекомендую открыть учебники по теме в нашей электронной библиотеке!"
-      });
-    }, 5000);
+    // AI Bots completely disabled on backend forum creation
 
     res.json({ topic });
   } catch (err) {

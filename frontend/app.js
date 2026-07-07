@@ -2421,19 +2421,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (setup) setup.classList.add("hidden");
     if (layout) layout.classList.remove("hidden");
 
-    const opponents = ["Мария_Нейро", "Иван_Кардио", "Дмитрий_ПатФиз", "Аня_Склиф"];
-    state.questOpponent = opponents[Math.floor(Math.random() * opponents.length)];
-    state.questOpponentState = "thinking";
-    
     const opponentText = document.getElementById("quest-opponent-text");
     if (opponentText) {
-      opponentText.textContent = `Соперник: ${state.questOpponent} (думает...)`;
-      opponentText.style.color = "var(--accent-pink)";
+      opponentText.style.display = "none";
     }
 
     generateQuestOptions();
     renderQuestCard();
-    triggerOpponentSimulation();
   }
 
   function generateQuestOptions() {
@@ -2452,35 +2446,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function triggerOpponentSimulation() {
-    if (state.questOpponentTimer) clearTimeout(state.questOpponentTimer);
-    if (state.questCompleted) return;
-
-    const guessDelay = 12000 + Math.random() * 8000;
-    
-    state.questOpponentTimer = setTimeout(() => {
-      if (state.questCompleted) return;
-      
-      const successChance = 0.4 + (state.currentQuestSymptomCount - 1) * 0.25;
-      const botGuessedRight = Math.random() < successChance;
-      
-      const opponentText = document.getElementById("quest-opponent-text");
-      if (botGuessedRight) {
-        state.questOpponentState = "guessed";
-        if (opponentText) {
-          opponentText.textContent = `Соперник: ${state.questOpponent} РАЗГАДАЛ диагноз! ⚡`;
-          opponentText.style.color = "var(--accent-pink)";
-        }
-        showToast(`⚠️ ${state.questOpponent} разгадал правильный диагноз! Дайте верный ответ быстрее!`);
-      } else {
-        state.questOpponentState = "incorrect";
-        if (opponentText) {
-          opponentText.textContent = `Соперник: ${state.questOpponent} дал неверную гипотезу! ❌`;
-          opponentText.style.color = "#ef4444";
-        }
-        showToast(`😅 ${state.questOpponent} выдвинул ложный диагноз. У вас есть шанс!`);
-        setTimeout(triggerOpponentSimulation, 5000);
-      }
-    }, guessDelay);
+    return; // AI Bots completely disabled
   }
 
   function renderQuestCard() {
@@ -5733,35 +5699,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function simulateForumAutoReply(threadId, qTitle, qContent) {
-    const delay = 4000 + Math.random() * 3000;
-    
-    setTimeout(() => {
-      const thread = forumThreads.find(t => t.id === threadId);
-      if (!thread) return;
-
-      const botPool = [
-        { author: "Иван_Кардио", avatar: "🫀", text: "🫀 Отличный академический вопрос! Если оценивать патофизиологические аспекты, здесь ведущую роль играет гемодинамическая разгрузка миокарда и регуляция тонуса сосудов. На практике мы всегда следим за балансом электролитов (особенно K+ и Mg2+)." },
-        { author: "Мария_Нейро", avatar: "🧠", text: "🧠 С неврологической точки зрения, крайне важно помнить про рефлекторную дугу и автономную регуляцию внутренних органов посредством блуждающего нерва и симпатического ствола." },
-        { author: "Кирилл_Фарма", avatar: "💊", text: "💊 Как фармаколог, добавлю: обязательно проверяйте синергизм и антагонизм при одновременном назначении препаратов! Печеночный метаболизм CYP3A4 может сильно менять концентрацию лекарства." },
-        { author: "Аня_Склиф", avatar: "🩺", text: "🩺 Как реаниматолог скажу: в острой фазе на первом месте - обеспечение проходимости дыхательных путей и стабилизация КОС (газы крови). Поддерживаю мнение коллег!" }
-      ];
-
-      const bot = botPool[Math.floor(Math.random() * botPool.length)];
-      
-      thread.replies.push({
-        author: bot.author,
-        avatar: bot.avatar,
-        content: bot.text + `\n\nВ качестве рекомендации советую перечитать главу учебника или воспользоваться разделом калькуляторов в панели меню!`,
-        time: "1 мин назад"
-      });
-
-      if (state.activeThreadId === threadId) {
-        renderForumReplies();
-      }
-      
-      renderForumThreads();
-      showToast(`💬 Новый ответ на форуме от ${bot.author}!`);
-    }, delay);
+    return; // AI Bots completely disabled
   }
 
   function simulateSystemMessage(text) {
