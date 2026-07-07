@@ -3343,6 +3343,17 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  // Logout button
+  const logoutBtn = document.getElementById("btn-logout");
+  if (logoutBtn) {
+    logoutBtn.onclick = () => {
+      safeStorage.removeItem("medstudy_user_profile");
+      safeStorage.removeItem("medstudy_jwt_token");
+      safeStorage.removeItem("medstudy_friends_list");
+      window.location.reload();
+    };
+  }
+
   function renderProfileView() {
     const avatarEmoji = document.getElementById("prof-avatar-emoji");
     const username = document.getElementById("prof-username");
