@@ -47,11 +47,25 @@ if (!fs.existsSync(uploadsDir)) {
 app.use("/uploads", express.static(uploadsDir));
 
 // --- DATABASE SETUP (SEQUELIZE) ---
-const sequelize = new Sequelize({
-  dialect: process.env.DB_DIALECT || "sqlite",
-  storage: process.env.DB_STORAGE || "./database.sqlite",
-  logging: false
-});
+const DB_URL = process.env.DATABASE_URL;
+let sequelize;
+if (DB_URL) {
+  const needsSsl = DB_URL.includes("ssl=true") || process.env.DB_SSL === "true";
+  sequelize = new Sequelize(DB_URL, {
+    logging: false,
+    dialectOptions: needsSsl ? {
+      ssl: {
+        rejectUnauthorized: false
+      }
+    } : {}
+  });
+} else {
+  sequelize = new Sequelize({
+    dialect: process.env.DB_DIALECT || "sqlite",
+    storage: process.env.DB_STORAGE || "./database.sqlite",
+    logging: false
+  });
+}
 
 // Models Definitions
 const User = sequelize.define("User", {
