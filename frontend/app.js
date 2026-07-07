@@ -458,6 +458,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function navigateToView(viewId) {
     state.activeView = viewId;
+    window.navigateToView = navigateToView;
     
     // Update menu items active class
     menuItems.forEach(item => {
@@ -666,6 +667,58 @@ document.addEventListener("DOMContentLoaded", () => {
         openCaseWorkspace(dailyCase);
       };
     }
+    renderDashboardOnlineFriends();
+  }
+
+  function renderDashboardOnlineFriends() {
+    const container = document.getElementById("dashboard-online-friends-container");
+    if (!container) return;
+
+    container.innerHTML = "";
+    
+    const aiBotIds = ["neuro_mary", "cardio_ivan", "sklif_anya", "pathphys_dmitry", "pharma_kirill"];
+    const realFriends = friendsList.filter(f => !aiBotIds.includes(f.id));
+
+    if (realFriends.length === 0) {
+      container.innerHTML = `<span style="font-size: 12px; color: var(--text-muted); font-style: italic;">У вас пока нет друзей в сети. Добавьте их во вкладке «Сообщество»!</span>`;
+      return;
+    }
+
+    realFriends.forEach(friend => {
+      const div = document.createElement("div");
+      div.style.textAlign = "center";
+      div.style.cursor = "pointer";
+      div.style.padding = "5px 10px";
+      div.style.borderRadius = "8px";
+      div.style.background = "rgba(255, 255, 255, 0.03)";
+      div.style.border = "1px solid rgba(255, 255, 255, 0.05)";
+      div.style.transition = "all 0.2s ease";
+      div.style.display = "flex";
+      div.style.flexDirection = "column";
+      div.style.alignItems = "center";
+      div.style.gap = "4px";
+
+      div.innerHTML = `
+        <span style="font-size: 24px; display: block;">${friend.avatar || "👤"}</span>
+        <span style="font-size: 11px; color:#fff; font-weight: 500;">${friend.name}</span>
+      `;
+
+      div.onclick = () => {
+        navigateToView("community");
+        openChatWithFriend(friend.id);
+      };
+
+      div.onmouseenter = () => {
+        div.style.background = "rgba(0, 242, 254, 0.1)";
+        div.style.borderColor = "rgba(0, 242, 254, 0.3)";
+      };
+      div.onmouseleave = () => {
+        div.style.background = "rgba(255, 255, 255, 0.03)";
+        div.style.borderColor = "rgba(255, 255, 255, 0.05)";
+      };
+
+      container.appendChild(div);
+    });
   }
 
   // --- SYSTEMS MODULE ---

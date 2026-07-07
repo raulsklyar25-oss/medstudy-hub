@@ -236,23 +236,8 @@
                 <!-- Left: Friends in network -->
                 <div>
                   <h4 style="font-size: 13px; margin: 0 0 10px 0; color: var(--accent-cyan);">👥 Друзья в сети:</h4>
-                  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <div style="text-align: center; cursor: pointer;" onclick="navigateToView('community'); openChatWithFriend('neuro_mary');">
-                      <span style="font-size: 24px; display: block;">🧠</span>
-                      <span style="font-size: 10px; color:#fff;">Мария_Нейро</span>
-                    </div>
-                    <div style="text-align: center; cursor: pointer;" onclick="navigateToView('community'); openChatWithFriend('cardio_ivan');">
-                      <span style="font-size: 24px; display: block;">🫀</span>
-                      <span style="font-size: 10px; color:#fff;">Иван_Кардио</span>
-                    </div>
-                    <div style="text-align: center; cursor: pointer;" onclick="navigateToView('community'); openChatWithFriend('sklif_anya');">
-                      <span style="font-size: 24px; display: block;">🩺</span>
-                      <span style="font-size: 10px; color:#fff;">Аня_Склиф</span>
-                    </div>
-                    <div style="text-align: center; cursor: pointer;" onclick="navigateToView('community'); openChatWithFriend('pathphys_dmitry');">
-                      <span style="font-size: 24px; display: block;">🔬</span>
-                      <span style="font-size: 10px; color:#fff;">Дмитрий_ПатФиз</span>
-                    </div>
+                  <div style="display: flex; gap: 12px; flex-wrap: wrap;" id="dashboard-online-friends-container">
+                    <!-- Dynamically populated real friends -->
                   </div>
                 </div>
                 <!-- Right: Latest Forum post preview -->
