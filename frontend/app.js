@@ -255,6 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupSocialSystem();
     setupFriendSearch();
     renderDailyQuests();
+    fetchFriends();
   }
 
   function init() {
@@ -4438,6 +4439,8 @@ document.addEventListener("DOMContentLoaded", () => {
               renderProfileView();
               initSocket();
               unlockAchievement("account_created");
+              fetchFriends();
+              fetchGroupChats();
               showToast("🎉 Аккаунт успешно создан! Добро пожаловать.");
             }
           }
@@ -4481,6 +4484,8 @@ document.addEventListener("DOMContentLoaded", () => {
               updateProfileUI();
               renderProfileView();
               initSocket();
+              fetchFriends();
+              fetchGroupChats();
               showToast("🔓 Вход выполнен успешно! С возвращением.");
             }
           }
@@ -6235,11 +6240,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastSearchResults = [];
 
   async function searchUsers(query) {
-    if (!query || query.trim().length < 1) return [];
-    const q = query.trim();
+    const q = query ? query.trim() : "";
     
     try {
-      const res = await fetch(`${API_URL}/users/search?query=${encodeURIComponent(q)}`);
+      const url = q ? `${API_URL}/users/search?query=${encodeURIComponent(q)}` : `${API_URL}/users/search`;
+      const res = await fetch(url);
       const data = await res.json();
       if (data.users) {
         const existingIds = friendsList.map(f => f.id);
@@ -6266,6 +6271,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     return [];
   }
+
+  window.fetchFriends = function() {
+    const token = safeStorage.getItem("medstudy_jwt_token");
+    if (!token) return;
+
+    fetch(`${API_URL}/social/friends`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.friends) {
+        data.friends.forEach(f => {
+          let existing = friendsList.find(ef => ef.id === f.id);
+          if (!existing) {
+            friendsList.push({
+              id: f.id,
+              name: f.username,
+              avatar: f.avatar || "🧑‍⚕️",
+              specialty: f.specialty || "Лечебное дело",
+              status: "offline",
+              chatHistory: []
+            });
+          } else {
+            existing.name = f.username;
+            existing.avatar = f.avatar || existing.avatar;
+            existing.specialty = f.specialty || existing.specialty;
+          }
+        });
+        saveFriendsToStorage();
+        renderFriendsList();
+      }
+    })
+    .catch(e => console.warn("Error fetching friends:", e));
+  };
 
   function addFriend(userId) {
     const user = lastSearchResults.find(u => u.id === userId);
@@ -6501,17 +6540,17 @@ document.addEventListener("DOMContentLoaded", () => {
           renderSearchResults(results);
         }
       });
+      // Show all users on input focus
+      searchInput.addEventListener("focus", async () => {
+        const results = await searchUsers(searchInput.value);
+        renderSearchResults(results);
+      });
       let debounceTimeout;
       searchInput.addEventListener("input", () => {
         clearTimeout(debounceTimeout);
         debounceTimeout = setTimeout(async () => {
-          if (searchInput.value.length >= 1) {
-            const results = await searchUsers(searchInput.value);
-            renderSearchResults(results);
-          } else {
-            const container = document.getElementById("friend-search-results");
-            if (container) { container.style.display = "none"; container.innerHTML = ""; }
-          }
+          const results = await searchUsers(searchInput.value);
+          renderSearchResults(results);
         }, 300);
       });
     }
