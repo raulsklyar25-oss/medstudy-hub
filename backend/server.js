@@ -117,6 +117,12 @@ const Friendship = sequelize.define("Friendship", {
   user2Id: { type: DataTypes.UUID, allowNull: false }
 });
 
+const GroupChat = sequelize.define("GroupChat", {
+  id: { type: DataTypes.UUID, defaultValue: Sequelize.UUIDV4, primaryKey: true },
+  name: { type: DataTypes.STRING, allowNull: false },
+  members: { type: DataTypes.TEXT, allowNull: false } // JSON array of user IDs
+});
+
 // Relationships
 ForumTopic.hasMany(ForumReply, { foreignKey: "topicId", onDelete: "CASCADE" });
 ForumReply.belongsTo(ForumTopic, { foreignKey: "topicId" });
@@ -517,6 +523,59 @@ app.get("/api/social/friends", authenticateToken, async (req, res) => {
   }
 });
 
+// Group Chats API
+app.post("/api/social/groups", authenticateToken, async (req, res) => {
+  try {
+    const { name, memberIds } = req.body;
+    if (!name || !memberIds || !Array.isArray(memberIds)) {
+      return res.status(400).json({ error: "Некорректные параметры группы" });
+    }
+
+    // Add creator to members if not present
+    const finalMembers = [...new Set([...memberIds, req.user.id])];
+
+    const group = await GroupChat.create({
+      name,
+      members: JSON.stringify(finalMembers)
+    });
+
+    // Notify all online invited members via sockets
+    finalMembers.forEach(mId => {
+      io.to(`user_${mId}`).emit("group_created", {
+        id: group.id,
+        name: group.name,
+        members: finalMembers
+      });
+    });
+
+    res.json({ success: true, group });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/social/groups", authenticateToken, async (req, res) => {
+  try {
+    const groups = await GroupChat.findAll();
+    const myGroups = groups.filter(g => {
+      try {
+        const members = JSON.parse(g.members);
+        return Array.isArray(members) && members.includes(req.user.id);
+      } catch (e) {
+        return false;
+      }
+    }).map(g => ({
+      id: g.id,
+      name: g.name,
+      members: JSON.parse(g.members)
+    }));
+
+    res.json({ groups: myGroups });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Admin Middleware
 const checkAdmin = (req, res, next) => {
   const passcode = req.headers["x-admin-passcode"] || req.query.passcode;
@@ -634,6 +693,19 @@ io.on("connection", (socket) => {
     socket.join(`user_${user.id}`); // private room for direct messages
     logEvent(`User ${user.username} (${user.id}) logged online`);
 
+    // Automatically join group rooms
+    GroupChat.findAll().then(groups => {
+      groups.forEach(g => {
+        try {
+          const members = JSON.parse(g.members);
+          if (Array.isArray(members) && members.includes(user.id)) {
+            socket.join(`group_${g.id}`);
+            console.log(`[SOCKET] Joined user ${user.username} to group_${g.id}`);
+          }
+        } catch(e) {}
+      });
+    });
+
     // Send the list of currently online users to this client
     const onlineIds = Array.from(connectedUsers.values()).map(u => u.id);
     socket.emit("online_users", onlineIds);
@@ -642,7 +714,7 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("user_presence", { userId: user.id, status: "online" });
   });
 
-  // 1. Social Real-Time Chat (Direct Messages)
+  // 1. Social Real-Time Chat (Direct Messages & Group Chats)
   socket.on("send_message", (data) => {
     const sender = connectedUsers.get(socket.id);
     if (!sender) {
@@ -667,6 +739,94 @@ io.on("connection", (socket) => {
     // Send confirmation back to sender
     messagePayload.isSelf = true;
     socket.emit("receive_message", messagePayload);
+  });
+
+  socket.on("send_group_message", (data) => {
+    // data: { groupId, text }
+    const sender = connectedUsers.get(socket.id);
+    if (!sender) return;
+
+    const messagePayload = {
+      groupId: data.groupId,
+      senderId: sender.id,
+      senderName: sender.username,
+      senderColor: sender.nameColor,
+      text: data.text,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    console.log(`[SOCKET] Broadcasting group message from ${sender.username} to group_${data.groupId}`);
+    io.to(`group_${data.groupId}`).emit("receive_group_message", messagePayload);
+  });
+
+  // Group Activities (Duels & Coop Tests)
+  socket.on("invite_group_activity", (data) => {
+    // data: { groupId, type, systemId, subjectId }
+    const sender = connectedUsers.get(socket.id);
+    if (!sender) return;
+
+    const lobbyId = `lobby_${Date.now()}`;
+    socket.join(lobbyId);
+
+    const lobbyState = {
+      lobbyId,
+      type: data.type, // 'duel' or 'coop'
+      systemId: data.systemId,
+      subjectId: data.subjectId,
+      isGroup: true,
+      groupId: data.groupId,
+      players: {
+        [sender.id]: { id: sender.id, name: sender.username, score: 0, currentIdx: 0 }
+      }
+    };
+    activeDuels.set(lobbyId, lobbyState);
+
+    // Send invitation to the entire group room
+    io.to(`group_${data.groupId}`).emit("group_activity_invite", {
+      lobbyId,
+      type: data.type,
+      systemId: data.systemId,
+      subjectId: data.subjectId,
+      senderId: sender.id,
+      senderName: sender.username,
+      groupId: data.groupId
+    });
+  });
+
+  socket.on("join_group_activity", (data) => {
+    // data: { lobbyId }
+    const user = connectedUsers.get(socket.id);
+    const lobby = activeDuels.get(data.lobbyId);
+    if (!user || !lobby) {
+      socket.emit("invite_error", { message: "Активность больше не активна." });
+      return;
+    }
+
+    socket.join(data.lobbyId);
+    
+    // Add player to lobby
+    lobby.players[user.id] = { id: user.id, name: user.username, score: 0, currentIdx: 0 };
+
+    // Emit game_started directly to the joining socket
+    const pIds = Object.keys(lobby.players);
+    const p1Id = pIds[0];
+    const p2Id = pIds[1] || user.id;
+
+    socket.emit("game_started", {
+      lobbyId: data.lobbyId,
+      type: lobby.type,
+      player1: { id: p1Id, name: lobby.players[p1Id].name },
+      player2: { id: p2Id, name: lobby.players[p2Id].name },
+      systemId: lobby.systemId,
+      subjectId: lobby.subjectId,
+      isGroup: true
+    });
+
+    // Notify all players in lobby of updated player state
+    io.to(data.lobbyId).emit("game_state_update", {
+      lobbyId: data.lobbyId,
+      players: lobby.players
+    });
   });
 
   socket.on("read_messages", (data) => {

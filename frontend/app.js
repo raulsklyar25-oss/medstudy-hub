@@ -98,6 +98,10 @@ document.addEventListener("DOMContentLoaded", () => {
     currentQuestSymptomCount: 1,
     questCompleted: false,
 
+    // Group chats state
+    groupChats: [],
+    activeGroupId: null,
+
     // Lab Analyzer state
     currentLabIndex: 0,
 
@@ -4303,6 +4307,67 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  function renderChatMessages() {
+    const container = document.getElementById("chat-messages-container");
+    if (!container) return;
+    
+    container.innerHTML = "";
+    
+    if (state.activeGroupId) {
+      const group = state.groupChats.find(g => g.id === state.activeGroupId);
+      if (!group) return;
+      
+      group.chatHistory.forEach(msg => {
+        const bubble = document.createElement("div");
+        bubble.className = `chat-bubble ${msg.senderId === state.userProfile.id ? 'sent' : 'received'}`;
+        
+        if (msg.isSystem) {
+          bubble.className = "chat-bubble received";
+          bubble.style.cssText = "background: rgba(13, 20, 38, 0.85); border: 1px solid rgba(0, 242, 254, 0.25); max-width: 90%; margin: 5px auto 5px 0; border-radius: 12px; padding: 15px;";
+          bubble.innerHTML = msg.text;
+        } else if (msg.senderId !== state.userProfile.id) {
+          bubble.innerHTML = `
+            <span style="font-size: 11px; font-weight: bold; color: ${msg.senderColor || 'var(--accent-pink)'}; display: block; margin-bottom: 3px;">${msg.senderName}</span>
+            <div>${msg.text}</div>
+            <div style="text-align: right; font-size: 9px; opacity: 0.6; margin-top: 4px;">
+              <span>${msg.time}</span>
+            </div>
+          `;
+        } else {
+          bubble.innerHTML = `
+            <div>${msg.text}</div>
+            <div style="text-align: right; font-size: 9px; opacity: 0.6; margin-top: 4px;">
+              <span>${msg.time}</span>
+            </div>
+          `;
+        }
+        container.appendChild(bubble);
+      });
+    } else {
+      const friend = friendsList.find(f => f.id === state.activeFriendId);
+      if (!friend) return;
+
+      friend.chatHistory.forEach(msg => {
+        const bubble = document.createElement("div");
+        bubble.className = `chat-bubble ${msg.sender}`;
+        const tickHtml = msg.sender === "sent"
+          ? `<span style="margin-left: 4px; font-weight: bold; color: #030814; opacity: ${msg.isRead ? '1' : '0.45'};">${msg.isRead ? '✓✓' : '✓'}</span>`
+          : '';
+        bubble.innerHTML = `
+          <div>${msg.text}</div>
+          <div style="text-align: right; font-size: 9px; opacity: 0.6; margin-top: 4px; display: flex; justify-content: flex-end; align-items: center;">
+            <span>${msg.time}</span>
+            ${tickHtml}
+          </div>
+        `;
+        container.appendChild(bubble);
+      });
+    }
+    
+    // Auto scroll to bottom
+    container.scrollTop = container.scrollHeight;
+  }
+
   if (accForm) {
     accForm.onsubmit = (e) => {
       e.preventDefault();
@@ -4587,9 +4652,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnDuel = document.getElementById("btn-chat-start-duel");
     if (btnDuel) {
       btnDuel.onclick = () => {
-        if (state.activeFriendId) {
-          const systemId = document.getElementById("chat-invite-system").value;
-          const subjectId = document.getElementById("chat-invite-subject").value;
+        const systemId = document.getElementById("chat-invite-system").value;
+        const subjectId = document.getElementById("chat-invite-subject").value;
+
+        if (state.activeGroupId) {
+          if (socket && socket.connected) {
+            socket.emit("invite_group_activity", { groupId: state.activeGroupId, type: "duel", systemId, subjectId });
+            showToast("Вызов на групповую дуэль отправлен в чат группы!", "success");
+          } else {
+            showToast("Мультиплеер недоступен.", "error");
+          }
+        } else if (state.activeFriendId) {
           if (socket && socket.connected) {
             socket.emit("invite_friend", { receiverId: state.activeFriendId, type: "duel", systemId, subjectId });
             showToast("Вызов на дуэль отправлен другу. Ожидайте ответа...", "success");
@@ -4603,9 +4676,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnCoop = document.getElementById("btn-chat-start-coop");
     if (btnCoop) {
       btnCoop.onclick = () => {
-        if (state.activeFriendId) {
-          const systemId = document.getElementById("chat-invite-system").value;
-          const subjectId = document.getElementById("chat-invite-subject").value;
+        const systemId = document.getElementById("chat-invite-system").value;
+        const subjectId = document.getElementById("chat-invite-subject").value;
+
+        if (state.activeGroupId) {
+          if (socket && socket.connected) {
+            socket.emit("invite_group_activity", { groupId: state.activeGroupId, type: "coop", systemId, subjectId });
+            showToast("Приглашение на совместный тест отправлено в чат группы!", "success");
+          } else {
+            showToast("Мультиплеер недоступен.", "error");
+          }
+        } else if (state.activeFriendId) {
           if (socket && socket.connected) {
             socket.emit("invite_friend", { receiverId: state.activeFriendId, type: "coop", systemId, subjectId });
             showToast("Приглашение на совместный тест отправлено другу. Ожидайте ответа...", "success");
@@ -4615,6 +4696,96 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       };
     }
+
+    // Create Group modal triggers
+    const btnOpenGroupModal = document.getElementById("btn-create-group-chat-modal");
+    const btnCloseGroupModal = document.getElementById("btn-close-group-modal");
+    const createGroupModal = document.getElementById("create-group-modal");
+    const createGroupForm = document.getElementById("create-group-form");
+
+    if (btnOpenGroupModal) {
+      btnOpenGroupModal.onclick = () => {
+        if (createGroupModal) {
+          createGroupModal.classList.remove("hidden");
+          createGroupModal.style.display = "flex";
+        }
+        
+        // Populate friends checkboxes
+        const membersListContainer = document.getElementById("group-members-select-list");
+        if (membersListContainer) {
+          membersListContainer.innerHTML = "";
+          friendsList.forEach(f => {
+            const label = document.createElement("label");
+            label.style.cssText = "display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13.5px; cursor: pointer; user-select: none; padding: 4px 0;";
+            label.innerHTML = `
+              <input type="checkbox" value="${f.id}" class="group-member-checkbox" style="cursor: pointer; width: 16px; height: 16px; margin: 0;">
+              <span>${f.avatar} <strong>${f.name}</strong> (${f.specialty || 'Студент'})</span>
+            `;
+            membersListContainer.appendChild(label);
+          });
+        }
+      };
+    }
+
+    if (btnCloseGroupModal) {
+      btnCloseGroupModal.onclick = () => {
+        if (createGroupModal) {
+          createGroupModal.classList.add("hidden");
+          createGroupModal.style.display = "none";
+        }
+      };
+    }
+
+    if (createGroupForm) {
+      createGroupForm.onsubmit = (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById("group-name-input");
+        const groupName = nameInput ? nameInput.value.trim() : "";
+        
+        const checkedBoxes = document.querySelectorAll(".group-member-checkbox:checked");
+        const memberIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+        if (!groupName) {
+          showToast("Введите название группы", "warning");
+          return;
+        }
+
+        const token = safeStorage.getItem("medstudy_jwt_token");
+        if (!token) {
+          showToast("Необходима авторизация", "error");
+          return;
+        }
+
+        fetch(`${API_URL}/social/groups`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({ name: groupName, memberIds })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            showToast(`👥 Группа "${groupName}" успешно создана!`, "success");
+            if (createGroupModal) {
+              createGroupModal.classList.add("hidden");
+              createGroupModal.style.display = "none";
+            }
+            if (nameInput) nameInput.value = "";
+            fetchGroupChats();
+          } else {
+            showToast(data.error || "Ошибка при создании группы", "error");
+          }
+        })
+        .catch(() => {
+          showToast("Не удалось подключиться к серверу.", "error");
+        });
+      };
+    }
+
+    // Load group list
+    fetchGroupChats();
 
     document.querySelectorAll(".forum-filters button").forEach(btn => {
       btn.onclick = () => {
@@ -4755,7 +4926,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.openChatWithFriend = function(friendId) {
     state.activeFriendId = friendId;
+    state.activeGroupId = null;
     renderFriendsList();
+    renderGroupsList();
 
     document.getElementById("comm-empty-state").classList.add("hidden");
     document.getElementById("comm-chat-active").classList.remove("hidden");
@@ -4782,36 +4955,88 @@ document.addEventListener("DOMContentLoaded", () => {
     const statusLabel = document.getElementById("chat-header-status");
     statusLabel.textContent = friend.status === "online" ? "В сети" : (friend.specialty || "Не в сети");
     statusLabel.className = (friend.status === "online") ? "accent-cyan" : "text-muted";
+  };
+
+  function renderGroupsList() {
+    const container = document.getElementById("groups-container");
+    if (!container) return;
+
+    container.innerHTML = "";
+    state.groupChats.forEach(group => {
+      const btn = document.createElement("button");
+      btn.className = `friend-item-btn ${state.activeGroupId === group.id ? 'active' : ''}`;
+
+      btn.innerHTML = `
+        <div style="font-size: 24px;">👥</div>
+        <div style="flex: 1; text-align: left;">
+          <div style="font-size: 13.5px; font-weight: bold; color: #fff; display: flex; align-items: center; justify-content: space-between;">
+            <span>${group.name}</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">Группа (${group.members.length} уч.)</div>
+        </div>
+      `;
+
+      btn.onclick = () => {
+        openChatWithGroup(group.id);
+      };
+
+      container.appendChild(btn);
+    });
+  }
+
+  window.openChatWithGroup = function(groupId) {
+    state.activeGroupId = groupId;
+    state.activeFriendId = null;
+    renderFriendsList();
+    renderGroupsList();
+
+    document.getElementById("comm-empty-state").classList.add("hidden");
+    document.getElementById("comm-chat-active").classList.remove("hidden");
+    document.getElementById("comm-duel-active").classList.add("hidden");
+    document.getElementById("comm-coop-active").classList.add("hidden");
+
+    const group = state.groupChats.find(g => g.id === groupId);
+    if (!group) return;
+
+    document.getElementById("chat-header-name").textContent = group.name;
+    document.getElementById("chat-header-avatar").textContent = "👥";
+    
+    const statusLabel = document.getElementById("chat-header-status");
+    statusLabel.textContent = `Группа (${group.members.length} участников)`;
+    statusLabel.className = "text-muted";
 
     renderChatMessages();
   };
 
-  function renderChatMessages() {
-    const container = document.getElementById("chat-messages-container");
-    if (!container) return;
-    
-    container.innerHTML = "";
-    const friend = friendsList.find(f => f.id === state.activeFriendId);
-    if (!friend) return;
+  function fetchGroupChats() {
+    const token = safeStorage.getItem("medstudy_jwt_token");
+    if (!token) return;
 
-    friend.chatHistory.forEach(msg => {
-      const bubble = document.createElement("div");
-      bubble.className = `chat-bubble ${msg.sender}`;
-      const tickHtml = msg.sender === "sent"
-        ? `<span style="margin-left: 4px; font-weight: bold; color: #030814; opacity: ${msg.isRead ? '1' : '0.45'};">${msg.isRead ? '✓✓' : '✓'}</span>`
-        : '';
-      bubble.innerHTML = `
-        <div>${msg.text}</div>
-        <div style="text-align: right; font-size: 9px; opacity: 0.6; margin-top: 4px; display: flex; justify-content: flex-end; align-items: center;">
-          <span>${msg.time}</span>
-          ${tickHtml}
-        </div>
-      `;
-      container.appendChild(bubble);
-    });
-
-    container.scrollTop = container.scrollHeight;
+    fetch(`${API_URL}/social/groups`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.groups) {
+        data.groups.forEach(g => {
+          const existing = state.groupChats.find(eg => eg.id === g.id);
+          g.chatHistory = existing ? existing.chatHistory : [];
+        });
+        state.groupChats = data.groups;
+        renderGroupsList();
+      }
+    })
+    .catch(() => {});
   }
+
+  window.joinGroupActivity = function(lobbyId) {
+    if (socket && socket.connected) {
+      socket.emit("join_group_activity", { lobbyId });
+    }
+  };
+
+    renderChatMessages();
+  };
 
   function getFormattedTime() {
     const now = new Date();
@@ -4958,21 +5183,84 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast(data.message, "error");
     });
 
+    socket.off("group_created").on("group_created", (data) => {
+      fetchGroupChats();
+    });
+
+    socket.off("receive_group_message").on("receive_group_message", (msg) => {
+      const group = state.groupChats.find(g => g.id === msg.groupId);
+      if (group) {
+        group.chatHistory.push({
+          senderId: msg.senderId,
+          senderName: msg.senderName,
+          senderColor: msg.senderColor,
+          text: msg.text,
+          time: msg.time
+        });
+        
+        if (state.activeGroupId === msg.groupId) {
+          renderChatMessages();
+        } else {
+          showToast(`👥 [Группа: ${group.name}] ${msg.senderName}: "${msg.text.substring(0, 30)}${msg.text.length > 30 ? '...' : ''}"`, "info", 6000);
+        }
+      }
+    });
+
+    socket.off("group_activity_invite").on("group_activity_invite", (data) => {
+      const group = state.groupChats.find(g => g.id === data.groupId);
+      if (group) {
+        const isDuel = data.type === "duel";
+        const inviteHtml = `
+          <div class="glass-panel" style="padding: 15px; border-radius: 12px; border: 1px solid rgba(0, 242, 254, 0.3); background: rgba(13, 20, 38, 0.85); box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;">
+            <span style="font-weight: bold; color: var(--accent-cyan); display: flex; align-items: center; gap: 5px;">🎮 Групповая активность!</span>
+            <span style="font-size: 12.5px; color: #fff;">${data.senderName} приглашает всех сыграть в <strong>${isDuel ? 'Карточную Дуэль ⚔️' : 'Совместный тест 📝'}</strong>!</span>
+            <button class="btn btn-primary btn-xs" onclick="joinGroupActivity('${data.lobbyId}')" style="align-self: flex-start; padding: 6px 12px; font-weight: bold; margin-top: 5px; cursor: pointer;">Присоединиться</button>
+          </div>
+        `;
+
+        group.chatHistory.push({
+          senderId: data.senderId,
+          senderName: data.senderName,
+          text: inviteHtml,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isSystem: true
+        });
+
+        if (state.activeGroupId === data.groupId) {
+          renderChatMessages();
+        }
+      }
+    });
+
     socket.off("game_started").on("game_started", (data) => {
       state.activeLobbyId = data.lobbyId;
       state.activeLobbyType = data.type;
+      state.isGroupActivity = data.isGroup || false;
       
       showToast("Игра началась!", "success");
 
       const typingIndicator = document.getElementById("chat-typing-indicator");
       if (typingIndicator) typingIndicator.classList.add("hidden");
 
+      const duelLb = document.getElementById("duel-group-leaderboard");
+      const coopLb = document.getElementById("coop-group-leaderboard");
+      if (duelLb) {
+        if (data.isGroup && data.type === "duel") duelLb.classList.remove("hidden");
+        else duelLb.classList.add("hidden");
+      }
+      if (coopLb) {
+        if (data.isGroup && data.type === "coop") coopLb.classList.remove("hidden");
+        else coopLb.classList.add("hidden");
+      }
+
+      const partner = data.player1.id === state.userProfile.id ? data.player2 : data.player1;
+      const partnerId = partner ? partner.id : "group";
+      const partnerName = partner ? partner.name : "Группа";
+
       if (data.type === "duel") {
-        const partner = data.player1.id === state.userProfile.id ? data.player2 : data.player1;
-        startCardDuelMultiplayer(partner.id, partner.name, data.systemId, data.subjectId);
+        startCardDuelMultiplayer(partnerId, partnerName, data.systemId, data.subjectId);
       } else {
-        const partner = data.player1.id === state.userProfile.id ? data.player2 : data.player1;
-        startCoopQuizMultiplayer(partner.id, partner.name, data.systemId, data.subjectId);
+        startCoopQuizMultiplayer(partnerId, partnerName, data.systemId, data.subjectId);
       }
     });
 
@@ -4982,6 +5270,25 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (state.activeLobbyType === "coop" && state.coopState && state.coopState.active) {
         updateCoopStateMultiplayer(data.players);
       }
+
+      if (state.isGroupActivity) {
+        const lbListId = state.activeLobbyType === "duel" ? "duel-group-leaderboard-list" : "coop-group-leaderboard-list";
+        const lbList = document.getElementById(lbListId);
+        if (lbList) {
+          lbList.innerHTML = "";
+          Object.values(data.players)
+            .sort((a, b) => b.score - a.score)
+            .forEach((p, idx) => {
+              const div = document.createElement("div");
+              div.style.cssText = "display: flex; justify-content: space-between; font-size: 12.5px; color: #fff; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);";
+              div.innerHTML = `
+                <span>${idx + 1}. <strong>${p.name}</strong></span>
+                <span style="color: var(--accent-cyan); font-weight: bold;">${p.score} (${p.currentIdx || 0} отв.)</span>
+              `;
+              lbList.appendChild(div);
+            });
+        }
+      }
     });
   }
 
@@ -4989,12 +5296,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("chat-input-text");
     if (!input || input.value.trim() === "") return;
 
+    const userText = input.value;
+    const formattedTime = getFormattedTime();
+
+    if (state.activeGroupId) {
+      if (socket && socket.connected) {
+        socket.emit("send_group_message", {
+          groupId: state.activeGroupId,
+          text: userText
+        });
+        input.value = "";
+      } else {
+        showToast("Сервис сообщений недоступен.", "error");
+      }
+      return;
+    }
+
     const friend = friendsList.find(f => f.id === state.activeFriendId);
     if (!friend) return;
 
-    const userText = input.value;
-    const formattedTime = getFormattedTime();
-    
     friend.chatHistory.push({
       sender: "sent",
       text: userText,
@@ -5566,43 +5886,50 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!ds || !ds.active) return;
 
     const myId = state.userProfile.id;
-    const partnerId = Object.keys(players).find(id => id !== myId);
+    // Find opponent with highest score for progress comparisons
+    const partnerId = Object.keys(players)
+      .filter(id => id !== myId)
+      .sort((a, b) => players[b].score - players[a].score)[0];
 
     const me = players[myId];
-    const partner = players[partnerId];
-
-    if (!me || !partner) return;
+    if (!me) return;
 
     ds.scoreUser = me.score;
-    ds.scorePartner = partner.score;
-
     document.getElementById("duel-score-user").textContent = ds.scoreUser;
-    document.getElementById("duel-score-partner").textContent = ds.scorePartner;
 
+    const partner = partnerId ? players[partnerId] : null;
     const actionText = document.getElementById("duel-partner-action-text");
-    
-    if (me.currentIdx > partner.currentIdx) {
-      actionText.textContent = `Ожидание хода ${partner.name}...`;
-    } else if (partner.currentIdx > me.currentIdx) {
-      actionText.textContent = `${partner.name} сделал ход! Ваша очередь.`;
-      const failBtn = document.getElementById("btn-duel-fail");
-      const successBtn = document.getElementById("btn-duel-success");
-      const flipBtn = document.getElementById("btn-duel-flip-card");
-      if (failBtn && failBtn.disabled && me.currentIdx === ds.currentCardIndex) {
-        failBtn.disabled = false;
-        successBtn.disabled = false;
-        if (flipBtn) flipBtn.classList.remove("hidden");
+
+    if (partner) {
+      ds.scorePartner = partner.score;
+      document.getElementById("duel-score-partner").textContent = ds.scorePartner;
+
+      if (me.currentIdx > partner.currentIdx) {
+        actionText.textContent = `Ожидание хода ${partner.name}...`;
+      } else if (partner.currentIdx > me.currentIdx) {
+        actionText.textContent = `${partner.name} сделал ход! Ваша очередь.`;
+        const failBtn = document.getElementById("btn-duel-fail");
+        const successBtn = document.getElementById("btn-duel-success");
+        const flipBtn = document.getElementById("btn-duel-flip-card");
+        if (failBtn && failBtn.disabled && me.currentIdx === ds.currentCardIndex) {
+          failBtn.disabled = false;
+          successBtn.disabled = false;
+          if (flipBtn) flipBtn.classList.remove("hidden");
+        }
+      } else {
+        if (me.currentIdx > ds.currentCardIndex) {
+          actionText.textContent = `Оба игрока ответили!`;
+          setTimeout(() => {
+            ds.currentCardIndex = me.currentIdx;
+            updateDuelCard();
+          }, 1500);
+        } else {
+          actionText.textContent = `Раунд #${me.currentIdx + 1}. Ожидание ответов...`;
+        }
       }
     } else {
-      if (me.currentIdx > ds.currentCardIndex) {
-        actionText.textContent = `Оба игрока ответили!`;
-        setTimeout(() => {
-          ds.currentCardIndex = me.currentIdx;
-          updateDuelCard();
-        }, 1500);
-      } else {
-        actionText.textContent = `Раунд #${me.currentIdx + 1}. Ожидание ответов...`;
-      }
+      document.getElementById("duel-score-partner").textContent = "0";
+      actionText.textContent = "Ожидание участников группы...";
     }
   }
 
@@ -5670,49 +5997,58 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!cs || !cs.active) return;
 
     const myId = state.userProfile.id;
-    const partnerId = Object.keys(players).find(id => id !== myId);
+    // Find opponent with highest score for progress comparisons
+    const partnerId = Object.keys(players)
+      .filter(id => id !== myId)
+      .sort((a, b) => players[b].score - players[a].score)[0];
 
     const me = players[myId];
-    const partner = players[partnerId];
-
-    if (!me || !partner) return;
+    if (!me) return;
 
     cs.scoreUser = me.score;
-    cs.scorePartner = partner.score;
-
     document.getElementById("coop-score-user").textContent = `${cs.scoreUser}/${me.currentIdx}`;
-    document.getElementById("coop-score-partner").textContent = `${cs.scorePartner}/${partner.currentIdx}`;
 
-    const userPercent = (me.currentIdx / cs.questions.length) * 100;
-    const partnerPercent = (partner.currentIdx / cs.questions.length) * 100;
-    document.getElementById("coop-progress-user").style.width = `${userPercent}%`;
-    document.getElementById("coop-progress-partner").style.width = `${partnerPercent}%`;
-
+    const partner = partnerId ? players[partnerId] : null;
     const hintAuthor = document.getElementById("coop-hint-author");
     const hintText = document.getElementById("coop-hint-text");
 
-    if (me.currentIdx > partner.currentIdx) {
-      if (hintAuthor) hintAuthor.textContent = partner.name;
-      if (hintText) hintText.textContent = `Думает над вопросом #${partner.currentIdx + 1}...`;
-    } else if (partner.currentIdx > me.currentIdx) {
-      if (hintAuthor) hintAuthor.textContent = "Система:";
-      if (hintText) hintText.textContent = `${partner.name} ответил! Теперь ваш ход.`;
-      
-      const optionButtons = document.querySelectorAll("#coop-options-container button");
-      if (optionButtons.length > 0 && optionButtons[0].disabled && me.currentIdx === cs.currentQIndex) {
-        optionButtons.forEach(btn => btn.disabled = false);
+    const userPercent = (me.currentIdx / cs.questions.length) * 100;
+    document.getElementById("coop-progress-user").style.width = `${userPercent}%`;
+
+    if (partner) {
+      cs.scorePartner = partner.score;
+      document.getElementById("coop-score-partner").textContent = `${cs.scorePartner}/${partner.currentIdx}`;
+      const partnerPercent = (partner.currentIdx / cs.questions.length) * 100;
+      document.getElementById("coop-progress-partner").style.width = `${partnerPercent}%`;
+
+      if (me.currentIdx > partner.currentIdx) {
+        if (hintAuthor) hintAuthor.textContent = partner.name;
+        if (hintText) hintText.textContent = `Думает над вопросом #${partner.currentIdx + 1}...`;
+      } else if (partner.currentIdx > me.currentIdx) {
+        if (hintAuthor) hintAuthor.textContent = "Система:";
+        if (hintText) hintText.textContent = `${partner.name} ответил! Теперь ваш ход.`;
+        
+        const optionButtons = document.querySelectorAll("#coop-options-container button");
+        if (optionButtons.length > 0 && optionButtons[0].disabled && me.currentIdx === cs.currentQIndex) {
+          optionButtons.forEach(btn => btn.disabled = false);
+        }
+      } else {
+        if (me.currentIdx > cs.currentQIndex) {
+          if (hintText) hintText.textContent = `Оба ответили! Загрузка следующего вопроса...`;
+          setTimeout(() => {
+            cs.currentQIndex = me.currentIdx;
+            updateCoopQuestion();
+          }, 1500);
+        } else {
+          if (hintAuthor) hintAuthor.textContent = partner.name;
+          if (hintText) hintText.textContent = cs.questions[cs.currentQIndex].hint;
+        }
       }
     } else {
-      if (me.currentIdx > cs.currentQIndex) {
-        if (hintText) hintText.textContent = `Оба ответили! Загрузка следующего вопроса...`;
-        setTimeout(() => {
-          cs.currentQIndex = me.currentIdx;
-          updateCoopQuestion();
-        }, 1500);
-      } else {
-        if (hintAuthor) hintAuthor.textContent = partner.name;
-        if (hintText) hintText.textContent = cs.questions[cs.currentQIndex].hint;
-      }
+      document.getElementById("coop-score-partner").textContent = "0/0";
+      document.getElementById("coop-progress-partner").style.width = "0%";
+      if (hintAuthor) hintAuthor.textContent = "Группа:";
+      if (hintText) hintText.textContent = "Ожидание хода других участников...";
     }
   }
 

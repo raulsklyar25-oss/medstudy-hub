@@ -961,8 +961,17 @@
               <div id="friend-search-results" style="display: none; flex-direction: column; gap: 6px; margin-bottom: 12px; max-height: 180px; overflow-y: auto;"></div>
               
               <h3 style="font-size: 13px; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 1.2px; margin-top: 0; margin-bottom: 12px;">👥 Ваши Друзья</h3>
-              <div id="friends-container" style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
+              <div id="friends-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; margin-bottom: 10px;">
                 <!-- Dynamic friends items -->
+              </div>
+
+              <!-- Group chats section -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; margin-bottom: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 15px;">
+                <h3 style="font-size: 13px; text-transform: uppercase; color: var(--accent-cyan); letter-spacing: 1.2px; margin: 0;">💬 Группы</h3>
+                <button id="btn-create-group-chat-modal" class="btn btn-outline btn-xs" style="padding: 2px 6px; font-size: 10px; margin: 0; cursor:pointer;">+ Создать</button>
+              </div>
+              <div id="groups-container" style="display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto;">
+                <!-- Dynamic group items -->
               </div>
             </div>
 
@@ -1036,6 +1045,12 @@
                   <div style="font-weight: 700; font-size: 14px; color:#fff;">Счет: <span id="duel-score-user" style="color:var(--accent-cyan);">0</span> vs <span id="duel-score-partner" style="color:var(--accent-pink);">0</span></div>
                 </div>
 
+                <!-- Group Leaderboard Widget -->
+                <div id="duel-group-leaderboard" class="hidden glass-panel" style="margin: 10px 0; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.25);">
+                  <h4 style="font-size: 11px; font-weight: bold; color: var(--accent-pink); text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.5px;">🏆 Таблица лидеров дуэли</h4>
+                  <div id="duel-group-leaderboard-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 100px; overflow-y: auto;"></div>
+                </div>
+
                 <!-- Card workspace -->
                 <div class="duel-card-area" style="display: flex; justify-content: center; align-items: center; flex: 1; position: relative;">
                   <div id="duel-card-box" class="glass-panel" style="width: 340px; min-height: 200px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 25px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(10,15,30,0.9); box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
@@ -1082,6 +1097,12 @@
                       <div id="coop-progress-partner" style="width: 0%; height: 100%; background: var(--accent-pink); box-shadow:0 0 10px var(--accent-pink);"></div>
                     </div>
                   </div>
+                </div>
+
+                <!-- Group Leaderboard Widget -->
+                <div id="coop-group-leaderboard" class="hidden glass-panel" style="margin: 10px 0; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.25);">
+                  <h4 style="font-size: 11px; font-weight: bold; color: var(--accent-cyan); text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.5px;">🏆 Лидерборд совместного теста</h4>
+                  <div id="coop-group-leaderboard-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 100px; overflow-y: auto;"></div>
                 </div>
 
                 <!-- Quiz question area -->
@@ -1570,6 +1591,36 @@
 
         <button type="submit" id="auth-submit-btn" class="btn btn-primary w-full" style="padding: 12px; margin-top: 10px; font-weight: 700; cursor:pointer;">Создать аккаунт</button>
         <p id="auth-toggle-btn" style="text-align: center; font-size: 12.5px; color: var(--accent-cyan); cursor: pointer; margin-top: 10px; margin-bottom: 0; text-decoration: underline; transition: color 0.2s; font-family: sans-serif;">Уже есть аккаунт? Войти</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- CREATE GROUP CHAT MODAL OVERLAY -->
+  <div id="create-group-modal" class="account-modal-overlay hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(3, 8, 20, 0.95); backdrop-filter: blur(15px); z-index: 3000; display: none; justify-content: center; align-items: center;">
+    <div class="account-modal-container glass-panel" style="width: 400px; padding: 30px; border-radius: 12px; background: rgba(13, 20, 38, 0.95); border: 1px solid rgba(0, 242, 254, 0.2); box-shadow: 0 0 30px rgba(0, 242, 254, 0.15); box-sizing: border-box;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 36px;">👥</span>
+        <h3 style="margin-top: 5px; font-weight: 800; font-size: 20px; color: #fff; margin-bottom:0;">Создать групповой чат</h3>
+        <p style="color: var(--text-muted); font-size: 12px; margin-top: 5px; margin-bottom:0;">Выберите участников группы и введите название чата.</p>
+      </div>
+
+      <form id="create-group-form" style="display: flex; flex-direction: column; gap: 15px; margin:0;">
+        <div class="form-group" style="margin:0;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color:#fff;">Название чата:</label>
+          <input type="text" id="group-name-input" required placeholder="Например: Анатомический Кружок" style="width: 100%; padding: 8px 12px; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size:13.5px; box-sizing: border-box;">
+        </div>
+
+        <div class="form-group" style="margin:0;">
+          <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color:#fff;">Выберите участников (друзей):</label>
+          <div id="group-members-select-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); box-sizing: border-box;">
+            <!-- Populated dynamically with checkboxes for each friend -->
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button type="button" id="btn-close-group-modal" class="btn btn-outline" style="flex: 1; padding: 10px; font-size: 13px; cursor:pointer;">Отмена</button>
+          <button type="submit" class="btn btn-primary" style="flex: 1; padding: 10px; font-size: 13px; font-weight: 700; cursor:pointer;">Создать</button>
+        </div>
       </form>
     </div>
   </div>
