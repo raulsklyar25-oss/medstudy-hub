@@ -78,6 +78,7 @@ const User = sequelize.define("User", {
   rank: { type: DataTypes.STRING, defaultValue: "Младший интерн" },
   avatar: { type: DataTypes.STRING, defaultValue: "🩺" },
   specialty: { type: DataTypes.STRING, defaultValue: "Лечебное дело" },
+  motto: { type: DataTypes.STRING, defaultValue: "Вся жизнь - борьба за гомеостаз!" },
   studiedCardsCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   solvedCasesCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   completedTopicsCount: { type: DataTypes.INTEGER, defaultValue: 0 },
@@ -135,16 +136,65 @@ const authenticateToken = (req, res, next) => {
 
 // --- REST API ROUTES ---
 
+// Helper function to calculate Levenshtein distance for similarity checking
+function levenshteinDistance(s1, s2) {
+  const track = Array(s2.length + 1).fill(null).map(() => Array(s1.length + 1).fill(null));
+  for (let i = 0; i <= s1.length; i += 1) {
+     track[0][i] = i;
+  }
+  for (let j = 0; j <= s2.length; j += 1) {
+     track[j][0] = j;
+  }
+  for (let j = 1; j <= s2.length; j += 1) {
+     for (let i = 1; i <= s1.length; i += 1) {
+        const indicator = s1[i - 1] === s2[j - 1] ? 0 : 1;
+        track[j][i] = Math.min(
+           track[j][i - 1] + 1, // deletion
+           track[j - 1][i] + 1, // insertion
+           track[j - 1][i - 1] + indicator // substitution
+        );
+     }
+  }
+  return track[s2.length][s1.length];
+}
+
 // 1. Authentication
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const { username, email, password, specialty, avatar, nameColor } = req.body;
+    const { username, email, password, specialty, avatar, nameColor, motto } = req.body;
     if (!username || !email || !password) {
-      return res.status(400).json({ error: "Please fill all required fields" });
+      return res.status(400).json({ error: "Пожалуйста, заполните все обязательные поля" });
     }
 
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) return res.status(400).json({ error: "Email already in use" });
+    // Check exact email
+    const existingEmail = await User.findOne({ where: { email } });
+    if (existingEmail) return res.status(400).json({ error: "Этот email уже используется" });
+
+    // Check exact case-insensitive username
+    const existingUsername = await User.findOne({
+      where: sequelize.where(
+        sequelize.fn('lower', sequelize.col('username')),
+        username.toLowerCase()
+      )
+    });
+    if (existingUsername) {
+      return res.status(400).json({ error: "Этот никнейм уже занят. Пожалуйста, выберите другой." });
+    }
+
+    // Check similarity: fetch all users
+    const allUsers = await User.findAll({ attributes: ["username"] });
+    const normalizedNew = username.toLowerCase().replace(/[^a-z0-9а-яё]/gi, "");
+    for (const u of allUsers) {
+      const normalizedExisting = u.username.toLowerCase().replace(/[^a-z0-9а-яё]/gi, "");
+      if (normalizedNew === normalizedExisting) {
+        return res.status(400).json({ error: "Этот никнейм слишком похож на уже существующий. Пожалуйста, выберите другой." });
+      }
+      
+      const distance = levenshteinDistance(normalizedNew, normalizedExisting);
+      if (distance <= 2) {
+        return res.status(400).json({ error: "Этот никнейм слишком похож на уже существующий. Пожалуйста, выберите другой." });
+      }
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({
@@ -153,11 +203,29 @@ app.post("/api/auth/register", async (req, res) => {
       passwordHash,
       specialty: specialty || "Лечебное дело",
       avatar: avatar || "🩺",
-      nameColor: nameColor || "#00f2fe"
+      nameColor: nameColor || "#00f2fe",
+      motto: motto || "Вся жизнь - борьба за гомеостаз!"
     });
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token, user: { id: user.id, username: user.username, email: user.email, xp: user.xp, level: user.level, rank: user.rank, avatar: user.avatar, specialty: user.specialty, nameColor: user.nameColor } });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        xp: user.xp,
+        level: user.level,
+        rank: user.rank,
+        avatar: user.avatar,
+        specialty: user.specialty,
+        nameColor: user.nameColor,
+        motto: user.motto,
+        studiedCardsCount: user.studiedCardsCount,
+        solvedCasesCount: user.solvedCasesCount,
+        completedTopicsCount: user.completedTopicsCount
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -165,15 +233,43 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ error: "User not found" });
+    const { username, email, password } = req.body;
+    const lookup = username || email;
+    if (!lookup || !password) {
+      return res.status(400).json({ error: "Пожалуйста, введите логин и пароль" });
+    }
+
+    // Lookup case-insensitively by either username or email
+    const user = await User.findOne({
+      where: username 
+        ? sequelize.where(sequelize.fn('lower', sequelize.col('username')), username.toLowerCase())
+        : sequelize.where(sequelize.fn('lower', sequelize.col('email')), lookup.toLowerCase())
+    });
+
+    if (!user) return res.status(400).json({ error: "Пользователь не найден" });
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+    if (!isMatch) return res.status(400).json({ error: "Неверный пароль" });
 
     const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "30d" });
-    res.json({ token, user: { id: user.id, username: user.username, email: user.email, xp: user.xp, level: user.level, rank: user.rank, avatar: user.avatar, specialty: user.specialty, nameColor: user.nameColor, studiedCardsCount: user.studiedCardsCount, solvedCasesCount: user.solvedCasesCount, completedTopicsCount: user.completedTopicsCount } });
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        xp: user.xp,
+        level: user.level,
+        rank: user.rank,
+        avatar: user.avatar,
+        specialty: user.specialty,
+        nameColor: user.nameColor,
+        motto: user.motto,
+        studiedCardsCount: user.studiedCardsCount,
+        solvedCasesCount: user.solvedCasesCount,
+        completedTopicsCount: user.completedTopicsCount
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -182,7 +278,7 @@ app.post("/api/auth/login", async (req, res) => {
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: "Пользователь не найден" });
     res.json({ user });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -191,9 +287,9 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
 
 app.post("/api/auth/update", authenticateToken, async (req, res) => {
   try {
-    const { xp, level, rank, avatar, nameColor, studiedCardsCount, solvedCasesCount, completedTopicsCount } = req.body;
+    const { xp, level, rank, avatar, nameColor, studiedCardsCount, solvedCasesCount, completedTopicsCount, motto } = req.body;
     const user = await User.findByPk(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ error: "Пользователь не найден" });
 
     if (xp !== undefined) user.xp = xp;
     if (level !== undefined) user.level = level;
@@ -203,6 +299,7 @@ app.post("/api/auth/update", authenticateToken, async (req, res) => {
     if (studiedCardsCount !== undefined) user.studiedCardsCount = studiedCardsCount;
     if (solvedCasesCount !== undefined) user.solvedCasesCount = solvedCasesCount;
     if (completedTopicsCount !== undefined) user.completedTopicsCount = completedTopicsCount;
+    if (motto !== undefined) user.motto = motto;
 
     await user.save();
     res.json({ success: true, user });

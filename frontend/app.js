@@ -4239,7 +4239,11 @@ document.addEventListener("DOMContentLoaded", () => {
           level: state.level,
           studiedCardsCount: state.studiedCardsCount,
           solvedCasesCount: state.solvedCasesCount,
-          completedTopicsCount: state.completedTopics ? state.completedTopics.length : 0
+          completedTopicsCount: state.completedTopics ? state.completedTopics.length : 0,
+          motto: state.userProfile.motto,
+          avatar: state.userProfile.avatar,
+          nameColor: state.userProfile.nameColor,
+          specialty: state.userProfile.specialty
         })
       }).catch(() => {});
     }
@@ -4258,77 +4262,171 @@ document.addEventListener("DOMContentLoaded", () => {
     saveUserProfile();
   }
 
-  // Account Creation Form handler
+  // Unified Auth (Login / Register) Modal setup
   const accForm = document.getElementById("account-creation-form");
+  const authToggleBtn = document.getElementById("auth-toggle-btn");
+  const authTitle = document.getElementById("auth-title");
+  const authSubtitle = document.getElementById("auth-subtitle");
+  const authRegFields = document.getElementById("auth-reg-fields");
+  const authSubmitBtn = document.getElementById("auth-submit-btn");
+  const authErrorAlert = document.getElementById("auth-error-alert");
+
+  let authMode = "register"; // "register" or "login"
+
+  if (authToggleBtn) {
+    authToggleBtn.onclick = () => {
+      // Clear errors on toggle
+      if (authErrorAlert) authErrorAlert.classList.add("hidden");
+
+      if (authMode === "register") {
+        authMode = "login";
+        if (authRegFields) authRegFields.style.display = "none";
+        if (authTitle) authTitle.textContent = "Вход в аккаунт";
+        if (authSubtitle) authSubtitle.textContent = "Войдите в свой существующий профиль, используя Никнейм и Пароль.";
+        if (authSubmitBtn) authSubmitBtn.textContent = "Войти";
+        if (authToggleBtn) authToggleBtn.textContent = "Нет аккаунта? Зарегистрироваться";
+        
+        // Disable required attributes for reg-only fields
+        const specialtyInput = document.getElementById("acc-specialty");
+        if (specialtyInput) specialtyInput.removeAttribute("required");
+      } else {
+        authMode = "register";
+        if (authRegFields) authRegFields.style.display = "flex";
+        if (authTitle) authTitle.textContent = "Создание профиля";
+        if (authSubtitle) authSubtitle.textContent = "Создайте учебный аккаунт для доступа к чату, карточным дуэлям, совместным тестам и консилиуму на форуме!";
+        if (authSubmitBtn) authSubmitBtn.textContent = "Создать аккаунт";
+        if (authToggleBtn) authToggleBtn.textContent = "Уже есть аккаунт? Войти";
+        
+        const specialtyInput = document.getElementById("acc-specialty");
+        if (specialtyInput) specialtyInput.setAttribute("required", "required");
+      }
+    };
+  }
+
   if (accForm) {
     accForm.onsubmit = (e) => {
       e.preventDefault();
+      if (authErrorAlert) authErrorAlert.classList.add("hidden");
+
       const usernameInput = document.getElementById("acc-username");
+      const passwordInput = document.getElementById("acc-password");
       const specialtyInput = document.getElementById("acc-specialty");
       const mottoInput = document.getElementById("acc-motto");
-      
-      const selectedAvatarBtn = document.querySelector("#avatar-selector .avatar-opt.active");
-      const avatarEmoji = selectedAvatarBtn ? selectedAvatarBtn.textContent.trim() : "🧑‍⚕️";
-      
-      const selectedColorBtn = document.querySelector("#namecolor-selector .color-opt.active");
-      const nameColor = selectedColorBtn ? selectedColorBtn.getAttribute("data-color") : "#00f2fe";
-      
-      const username = (usernameInput && usernameInput.value.trim()) ? usernameInput.value.trim() : "Студент";
-      const specialty = (specialtyInput && specialtyInput.value.trim()) ? specialtyInput.value.trim() : "Лечебное дело";
-      const motto = (mottoInput && mottoInput.value.trim()) ? mottoInput.value.trim() : "Учеба и только учеба!";
-      
-      state.userProfile.username = username;
-      state.userProfile.specialty = specialty;
-      state.userProfile.motto = motto;
-      state.userProfile.avatar = avatarEmoji;
-      state.userProfile.nameColor = nameColor;
-      state.userProfile.level = 1;
-      state.userProfile.xp = 0;
-      state.userProfile.casesSolved = 0;
-      state.userProfile.quizzesSolved = 0;
-      state.userProfile.duelsWon = 0;
-      state.userProfile.forumPosts = 0;
 
-      // Save locally IMMEDIATELY (synchronous, no await)
-      saveUserProfile();
+      const username = usernameInput ? usernameInput.value.trim() : "";
+      const password = passwordInput ? passwordInput.value : "";
       
-      // Close modal instantly
-      const modal = document.getElementById("account-creation-modal");
-      if (modal) {
-        modal.classList.add("hidden");
-        modal.style.display = "none";
-      }
-      
-      updateProfileUI();
-      renderProfileView();
-      
-      unlockAchievement("account_created");
-      showToast("🎉 Аккаунт успешно создан! Добро пожаловать.");
-
-      fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          email: `${username.toLowerCase().replace(/\s+/g, "_")}@medstudy.hub`,
-          password: `${username}123`,
-          specialty,
-          avatar: avatarEmoji
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.token) {
-          safeStorage.setItem("medstudy_jwt_token", data.token);
-          if (data.user) {
-            state.userProfile = data.user;
-            saveUserProfile();
-            renderProfileView();
-          }
-          initSocket();
+      if (!username || !password) {
+        if (authErrorAlert) {
+          authErrorAlert.textContent = "Пожалуйста, введите никнейм и пароль";
+          authErrorAlert.classList.remove("hidden");
         }
-      })
-      .catch(() => {});
+        return;
+      }
+
+      const modal = document.getElementById("account-creation-modal");
+
+      if (authMode === "register") {
+        const selectedAvatarBtn = document.querySelector("#avatar-selector .avatar-opt.active");
+        const avatarEmoji = selectedAvatarBtn ? selectedAvatarBtn.textContent.trim() : "🩺";
+        
+        const selectedColorBtn = document.querySelector("#namecolor-selector .color-opt.active");
+        const nameColor = selectedColorBtn ? selectedColorBtn.getAttribute("data-color") : "#00f2fe";
+        
+        const specialty = (specialtyInput && specialtyInput.value.trim()) ? specialtyInput.value.trim() : "Лечебное дело";
+        const motto = (mottoInput && mottoInput.value.trim()) ? mottoInput.value.trim() : "Вся жизнь - борьба за гомеостаз!";
+
+        fetch(`${API_URL}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            email: `${username.toLowerCase().replace(/[^a-z0-9]/gi, "_")}@medstudy.hub`,
+            password,
+            specialty,
+            avatar: avatarEmoji,
+            nameColor,
+            motto
+          })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, data })))
+        .then(({ status, data }) => {
+          if (status !== 200) {
+            if (authErrorAlert) {
+              authErrorAlert.textContent = data.error || "Ошибка создания аккаунта";
+              authErrorAlert.classList.remove("hidden");
+            }
+          } else {
+            if (data.token) {
+              safeStorage.setItem("medstudy_jwt_token", data.token);
+              if (data.user) {
+                state.userProfile = data.user;
+                saveUserProfile();
+                renderProfileView();
+              }
+              // Close modal instantly
+              if (modal) {
+                modal.classList.add("hidden");
+                modal.style.display = "none";
+              }
+              updateProfileUI();
+              renderProfileView();
+              initSocket();
+              unlockAchievement("account_created");
+              showToast("🎉 Аккаунт успешно создан! Добро пожаловать.");
+            }
+          }
+        })
+        .catch(err => {
+          if (authErrorAlert) {
+            authErrorAlert.textContent = "Не удалось подключиться к серверу.";
+            authErrorAlert.classList.remove("hidden");
+          }
+        });
+      } else {
+        // Login mode
+        fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            password
+          })
+        })
+        .then(res => res.json().then(data => ({ status: res.status, data })))
+        .then(({ status, data }) => {
+          if (status !== 200) {
+            if (authErrorAlert) {
+              authErrorAlert.textContent = data.error || "Неверный логин или пароль";
+              authErrorAlert.classList.remove("hidden");
+            }
+          } else {
+            if (data.token) {
+              safeStorage.setItem("medstudy_jwt_token", data.token);
+              if (data.user) {
+                state.userProfile = data.user;
+                saveUserProfile();
+                renderProfileView();
+              }
+              // Close modal instantly
+              if (modal) {
+                modal.classList.add("hidden");
+                modal.style.display = "none";
+              }
+              updateProfileUI();
+              renderProfileView();
+              initSocket();
+              showToast("🔓 Вход выполнен успешно! С возвращением.");
+            }
+          }
+        })
+        .catch(err => {
+          if (authErrorAlert) {
+            authErrorAlert.textContent = "Не удалось подключиться к серверу.";
+            authErrorAlert.classList.remove("hidden");
+          }
+        });
+      }
     };
   }
 
