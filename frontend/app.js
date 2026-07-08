@@ -6255,7 +6255,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         
         lastSearchResults = data.users
-          .filter(u => u.id !== myId && !existingIds.includes(u.id))
+          .filter(u => u.id !== myId)
           .map(u => ({
             id: u.id,
             name: u.username,
@@ -6509,16 +6509,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     container.style.display = "flex";
-    container.innerHTML = results.map(u => `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(0,242,254,0.05);border:1px solid rgba(0,242,254,0.12);cursor:pointer;" onclick="addFriend('${u.id}')">
-        <span style="font-size:20px;">${u.avatar}</span>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:600;color:#fff;">${u.name}</div>
-          <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.specialty || ""}</div>
+    container.innerHTML = results.map(u => {
+      const isAlreadyFriend = friendsList.find(f => f.id === u.id);
+      const actionHtml = isAlreadyFriend
+        ? `<span style="padding:4px 10px;font-size:11.5px;color:var(--accent-cyan);font-weight:bold;white-space:nowrap;">✓ Друг</span>`
+        : `<button style="padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-blue));border:none;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();addFriend('${u.id}')">➕ Добавить</button>`;
+      
+      const clickAction = isAlreadyFriend ? "" : `onclick="addFriend('${u.id}')"`;
+      
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(0,242,254,0.05);border:1px solid rgba(0,242,254,0.12);cursor:pointer;" ${clickAction}>
+          <span style="font-size:20px;">${u.avatar}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:600;color:#fff;">${u.name}</div>
+            <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.specialty || ""}</div>
+          </div>
+          ${actionHtml}
         </div>
-        <button style="padding:4px 10px;border-radius:6px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-blue));border:none;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;" onclick="event.stopPropagation();addFriend('${u.id}')">➕ Добавить</button>
-      </div>
-    `).join("");
+      `;
+    }).join("");
   }
 
   // Make addFriend globally accessible
