@@ -4955,6 +4955,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const statusLabel = document.getElementById("chat-header-status");
     statusLabel.textContent = friend.status === "online" ? "В сети" : (friend.specialty || "Не в сети");
     statusLabel.className = (friend.status === "online") ? "accent-cyan" : "text-muted";
+
+    renderChatMessages();
   };
 
   function renderGroupsList() {
@@ -5035,8 +5037,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-    renderChatMessages();
-  };
+
 
   function getFormattedTime() {
     const now = new Date();
