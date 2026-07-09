@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const BACKEND_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000"
-    : (window.location.hostname.includes("github.io") ? "https://medstudy-hub-pawd.onrender.com" : window.location.origin);
+    : (window.location.hostname.includes("github.io") || window.location.protocol === "file:" ? "https://medstudy-hub-pawd.onrender.com" : window.location.origin);
   const API_URL = `${BACKEND_URL}/api`;
   let socket = null;
   
@@ -4638,6 +4638,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- CHATS & FRIENDS DATABASE ---
+  const DEFAULT_AI_BOTS = [
+    { id: "sklif_anya", name: "Анна (Склиф)", avatar: "👩‍⚕️", specialty: "Терапевт", status: "В сети", chatHistory: [] },
+    { id: "cardio_ivan", name: "Иван (Кардио)", avatar: "👨‍⚕️", specialty: "Кардиолог", status: "В сети", chatHistory: [] },
+    { id: "neuro_mary", name: "Мария (Нейро)", avatar: "👩‍⚕️", specialty: "Невролог", status: "В сети", chatHistory: [] },
+    { id: "pathphys_dmitry", name: "Дмитрий (Патофиз)", avatar: "👨‍⚕️", specialty: "Патофизиолог", status: "В сети", chatHistory: [] },
+    { id: "pharma_kirill", name: "Кирилл (Фарма)", avatar: "👨‍⚕️", specialty: "Фармаколог", status: "В сети", chatHistory: [] }
+  ];
   const friendsList = [];
 
   state.activeFriendId = null;
@@ -6272,7 +6279,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return [];
   }
 
-  window.fetchFriends = function() {
+  function fetchFriends() {
     const token = safeStorage.getItem("medstudy_jwt_token");
     if (!token) return;
 
@@ -6304,7 +6311,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     })
     .catch(e => console.warn("Error fetching friends:", e));
-  };
+  }
+
+  window.fetchFriends = fetchFriends;
 
   function addFriend(userId) {
     const user = lastSearchResults.find(u => u.id === userId);
@@ -6567,12 +6576,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load saved friends from localStorage
   function loadSavedFriends() {
+    // Start with default AI bots
+    DEFAULT_AI_BOTS.forEach(bot => {
+      if (!friendsList.find(f => f.id === bot.id)) {
+        friendsList.push(JSON.parse(JSON.stringify(bot)));
+      }
+    });
+
     const saved = safeStorage.getItem("medstudy_friends_list");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         parsed.forEach(sf => {
-          if (!friendsList.find(f => f.id === sf.id)) {
+          let existing = friendsList.find(f => f.id === sf.id);
+          if (!existing) {
             const botUser = botUsersDatabase.find(b => b.id === sf.id);
             friendsList.push({
               id: sf.id,
@@ -6582,6 +6599,10 @@ document.addEventListener("DOMContentLoaded", () => {
               status: sf.status || (botUser ? botUser.status : "В сети"),
               chatHistory: sf.chatHistory || []
             });
+          } else {
+            // Keep saved chat history for bots
+            existing.chatHistory = sf.chatHistory || existing.chatHistory;
+            existing.status = sf.status || existing.status;
           }
         });
       } catch(e) {}
