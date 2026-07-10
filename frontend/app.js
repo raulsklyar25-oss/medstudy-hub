@@ -191,6 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const quizResultsPanel = document.getElementById("quiz-results-panel");
   const qzSetupSystem = document.getElementById("qz-setup-system");
   const qzSetupSubject = document.getElementById("qz-setup-subject");
+  const qzSetupDifficulty = document.getElementById("qz-setup-difficulty");
   const btnStartQuiz = document.getElementById("btn-start-quiz");
   const qzProgressFill = document.getElementById("qz-progress-fill");
   const qzQuestionNumber = document.getElementById("qz-question-number");
@@ -1302,6 +1303,46 @@ document.addEventListener("DOMContentLoaded", () => {
       drugs: ["метформин", "левотироксин", "преднизолон", "инсулин гларгин", "мерказолил"],
       parameters: ["уровень глюкозы плазмы", "осмолярность крови", "артериальное давление", "базальный метаболизм"],
       processes: ["секреция гормонов", "гликогенолиз", "глюконеогенез", "липолиз"]
+    },
+    musculoskeletal: {
+      name: "Опорно-двигательная система",
+      organs: ["кости скелета", "скелетные мышцы", "суставы", "сухожилия", "позвоночник", "надкостница"],
+      cells: ["остеобласты", "остеоциты", "остеокласты", "миоциты", "хондроциты"],
+      proteins: ["актин", "миозин", "коллаген I типа", "костная щелочная фосфатаза", "дистрофин"],
+      diseases: ["остеопороз", "миопатия Дюшенна", "остеоартроз", "остеомиелит", "миозит", "переломы костей"],
+      drugs: ["кальций D3 карбонат", "бисфосфонаты (алендронат)", "НПВС (ибупрофен)", "миорелаксанты"],
+      parameters: ["минеральная плотность кости", "мышечный тонус", "уровень ионизированного кальция", "сила сокращения"],
+      processes: ["резорбция кости", "мышечное сокращение", "остеогенез", "хондрогенез"]
+    },
+    lymphatic: {
+      name: "Иммунная и лимфатическая система",
+      organs: ["лимфатические узлы", "селезенка", "тимус", "красный костный мозг", "лимфатические протоки"],
+      cells: ["Т-лимфоциты", "В-лимфоциты", "макрофаги", "нейтрофилы", "плазмоциты", "дендритные клетки"],
+      proteins: ["иммуноглобулин G", "интерлейкин-1", "интерферон-гамма", "белки системы комплемента"],
+      diseases: ["лимфаденит", "первичный иммунодефицит", "лимфома Ходжкина", "аллергия (анафилаксия)", "тонзиллит"],
+      drugs: ["иммунодепрессанты", "антибиотики", "антигистаминные препараты (цетиризин)", "глюкокортикоиды"],
+      parameters: ["уровень лейкоцитов в крови", "титр антител", "скорость лимфотока", "концентрация иммуноглобулинов"],
+      processes: ["фагоцитоз", "антигенпрезентация", "воспаление", "клональная селекция лимфоцитов"]
+    },
+    reproductive: {
+      name: "Репродуктивная система",
+      organs: ["яичники", "матка", "яички", "предстательная железа", "фаллопиевы трубы", "семенные пузырьки"],
+      cells: ["яйцеклетки", "сперматозоиды", "клетки Лейдига", "клетки Сертоли", "фолликулярные клетки"],
+      proteins: ["эстрогены", "прогестерон", "тестостерон", "ФСГ (фолликулостимулирующий гормон)", "ЛГ", "ХГЧ"],
+      diseases: ["простатит", "эндометриоз", "мужское бесплодие", "аденома предстательной железы", "аднексит"],
+      drugs: ["комбинированные оральные контрацептивы", "андрогены", "гонадотропины", "антиэстрогены"],
+      parameters: ["уровень прогестерона", "подвижность сперматозоидов", "толщина эндометрия", "фаза цикла"],
+      processes: ["овуляция", "сперматогенез", "оплодотворение", "децидуализация эндометрия"]
+    },
+    integumentary: {
+      name: "Покровная система (Кожа)",
+      organs: ["кожа", "эпидермис", "дерма", "сальные железы", "волосяные фолликулы", "потовые железы"],
+      cells: ["кератиноциты", "меланоциты", "клетки Лангерганса", "клетки Меркеля"],
+      proteins: ["кератин", "меланин", "коллаген", "эластин", "себум"],
+      diseases: ["атопический дерматит", "псориаз", "акне (угри)", "меланома кожи", "экзема"],
+      drugs: ["глюкокортикоидные мази", "топические ретиноиды", "антисептики", "противогрибковые кремы"],
+      parameters: ["эластичность кожи", "уровень меланина", "pH кожи", "скорость потоотделения"],
+      processes: ["кератинизация", "меланогенез", "физиологическая регенерация кожи", "потоотделение"]
     }
   };
 
@@ -1551,26 +1592,41 @@ document.addEventListener("DOMContentLoaded", () => {
     state.currentQuizDifficulty = diffVal;
 
     let filtered = [];
+
+    // 1. Collect static quizzes from data.js
+    const staticQuizzes = (MedData.quizzes || []).filter(q => {
+      const matchSys = sysVal === "all" || q.systemId === sysVal;
+      const matchSub = subVal === "all" || q.subjectId === subVal;
+      return matchSys && matchSub;
+    });
+    filtered = filtered.concat(staticQuizzes);
+
+    // 2. Generate procedural quizzes
     if (sysVal === "all" && subVal === "all") {
-      const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine"];
+      const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine", "musculoskeletal", "lymphatic", "reproductive", "integumentary"];
       const subjects = ["anatomy", "histology", "physiology", "biochemistry", "pathophysiology", "pathology", "pharmacology"];
       systems.forEach(sys => {
         subjects.forEach(sub => {
-          filtered = filtered.concat(generateProceduralQuizzes(sys, sub, 25, diffVal));
+          filtered = filtered.concat(generateProceduralQuizzes(sys, sub, 15, diffVal));
         });
       });
     } else if (sysVal === "all") {
-      const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine"];
+      const systems = ["cardiovascular", "nervous", "respiratory", "digestive", "urinary", "endocrine", "musculoskeletal", "lymphatic", "reproductive", "integumentary"];
       systems.forEach(sys => {
-        filtered = filtered.concat(generateProceduralQuizzes(sys, subVal, 170, diffVal));
+        filtered = filtered.concat(generateProceduralQuizzes(sys, subVal, 100, diffVal));
       });
     } else if (subVal === "all") {
       const subjects = ["anatomy", "histology", "physiology", "biochemistry", "pathophysiology", "pathology", "pharmacology"];
       subjects.forEach(sub => {
-        filtered = filtered.concat(generateProceduralQuizzes(sysVal, sub, 150, diffVal));
+        filtered = filtered.concat(generateProceduralQuizzes(sysVal, sub, 100, diffVal));
       });
     } else {
-      filtered = generateProceduralQuizzes(sysVal, subVal, 1000, diffVal);
+      filtered = filtered.concat(generateProceduralQuizzes(sysVal, subVal, 1000, diffVal));
+    }
+
+    if (filtered.length === 0) {
+      showToast("Для выбранной комбинации темы и предмета тестов пока нет. Попробуйте выбрать другую!", "warning");
+      return;
     }
 
         // Limit to max 5 questions for a quick study session
