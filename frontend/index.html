@@ -117,9 +117,15 @@
     <main class="main-content">
       <!-- Top Header -->
       <header class="top-header">
+        <!-- Mobile hamburger button -->
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Открыть меню">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
         <div class="search-bar">
           <span class="search-icon">🔍</span>
-          <input type="text" id="global-search" placeholder="Искать темы, карточки или тесты (например: Аорта, Инсульт)...">
+          <input type="text" id="global-search" placeholder="Искать темы, карточки или тесты...">
         </div>
         <div class="header-stats">
           <div class="stat-badge">
@@ -132,6 +138,9 @@
           </div>
         </div>
       </header>
+
+      <!-- Mobile sidebar overlay backdrop -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
       <!-- Dynamic Views Wrapper -->
       <div class="view-viewport">

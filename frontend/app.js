@@ -6862,6 +6862,53 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  // =============================================
+  // MOBILE NAVIGATION (Hamburger Menu)
+  // =============================================
+  function setupMobileNav() {
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (!hamburgerBtn || !sidebar || !overlay) return;
+
+    function openSidebar() {
+      sidebar.classList.add('mobile-open');
+      overlay.classList.add('active');
+      hamburgerBtn.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('mobile-open');
+      overlay.classList.remove('active');
+      hamburgerBtn.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    hamburgerBtn.addEventListener('click', () => {
+      if (sidebar.classList.contains('mobile-open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+
+    // Close on overlay click
+    overlay.addEventListener('click', closeSidebar);
+
+    // Close when a menu item is tapped on mobile
+    document.querySelectorAll('.menu-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth <= 900) {
+          closeSidebar();
+        }
+      });
+    });
+  }
+
+  setupMobileNav();
+
   // Run the initialization
   init();
 });
