@@ -6876,6 +6876,7 @@ document.addEventListener("DOMContentLoaded", () => {
       sidebar.classList.add('mobile-open');
       overlay.classList.add('active');
       hamburgerBtn.classList.add('open');
+      hamburgerBtn.textContent = '✕';
       document.body.style.overflow = 'hidden';
     }
 
@@ -6883,6 +6884,7 @@ document.addEventListener("DOMContentLoaded", () => {
       sidebar.classList.remove('mobile-open');
       overlay.classList.remove('active');
       hamburgerBtn.classList.remove('open');
+      hamburgerBtn.textContent = '☰';
       document.body.style.overflow = '';
     }
 
@@ -6904,6 +6906,13 @@ document.addEventListener("DOMContentLoaded", () => {
           closeSidebar();
         }
       });
+    });
+
+    // Close sidebar on window resize to desktop
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 900) {
+        closeSidebar();
+      }
     });
   }
 
