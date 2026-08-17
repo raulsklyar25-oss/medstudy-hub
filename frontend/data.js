@@ -228,6 +228,240 @@ const MedData = {
       `
     },
     {
+      id: "cvs_physiology",
+      systemId: "cardiovascular",
+      subjectId: "physiology",
+      title: "Гемодинамика. Транскапиллярный обмен. Сердечный цикл. Регуляция АД",
+      sources: ["Нормальная физиология под ред. Нордена", "Guyton & Hall. Medical Physiology", "Видеолекции YouTube: Гемодинамика ч.1-2, Сердечный цикл, Рефлексы сердца, ЭКГ"],
+      logicalConnection: "Силы гидростатического и онкотического давления диктуют фильтрацию и реабсорбцию в капиллярах — основа патогенеза отёков. Нарушения регуляции АД — основа гипертонической болезни №1 причины смертности.",
+      summary: `
+<div class="academic-text">
+  <h2>ГЕМОДИНАМИКА: КОНСПЕКТ ЛЕКЦИЙ</h2>
+
+  <h3>1. Физиологическая классификация сосудов</h3>
+  <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;">
+    <thead><tr style="background:rgba(255,255,255,0.07);">
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Тип сосудов</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Представители</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Функция</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Эластические</b> (амортизирующие)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Аорта, крупные артерии</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">растягиваются при систоле, аккумулируют энергию, обеспечивая <b>непрерывный ток крови</b> в диастолу</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Резистивные</b> («краны» по Сеченову)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Артериолы, мелкие артерии</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">регулируют кровоток в органы, здесь <b>максимальное сопротивление</b> и <b>падение давления</b></td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Обменные</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Капилляры</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">один слой эндотелия — <b>обмен жидкостью и веществами</b> с тканями</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Ёмкостные</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Вены</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">~75% крови организма, клапаны препятствуют обратному току</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2. Транскапиллярный обмен (закон Старлинга)</h3>
+  <p>В капиллярах действуют <b>две противоположные силы</b>:</p>
+  <ul>
+    <li><b>Гидростатическое давление (Pг)</b> — давление крови, направлено <b>из сосуда</b>. В артериальном отделе = <b>40 мм рт.ст.</b>, в венозном = <b>20 мм рт.ст.</b></li>
+    <li><b>Онкотическое давление (ОД)</b> — осмотическое давление белков плазмы, направлено <b>внутрь сосуда</b>. Одинаково в обоих отделах = <b>30 мм рт.ст.</b> (белки не выходят из сосуда)</li>
+  </ul>
+  <div style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:8px; padding:14px; margin:12px 0;">
+    <h4 style="margin:0 0 8px 0; color:var(--accent-violet);">Результирующая сила:</h4>
+    <ul style="margin:0; padding-left:18px;">
+      <li><b>Артериальный отдел:</b> 40 − 30 = <b>+10 мм рт.ст.</b> → жидкость выходит в ткань (фильтрация, питание клеток)</li>
+      <li><b>Венозный отдел:</b> 20 − 30 = <b>−10 мм рт.ст.</b> → жидкость возвращается в сосуд (реабсорбция с продуктами обмена)</li>
+    </ul>
+  </div>
+  <h4>Патогенез отёков:</h4>
+  <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;">
+    <thead><tr style="background:rgba(255,255,255,0.07);">
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Вид отёка</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Механизм</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Локализация</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Сердечный</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Правожелудочковая недостаточность → венозный застой → ↑Pг в венозном отделе > ОД → нет реабсорбции</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Нижние конечности</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Почечный / Голодный</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Потеря белка с мочой или с едой → ↓ОД → 20 > ОД → нет реабсорбции</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Лицо (рыхлая клетчатка)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3. Факторы кровяного давления (формула 3+1)</h3>
+  <ol>
+    <li><b>Работа сердца</b> — главный насос</li>
+    <li><b>Объём циркулирующей крови (ОЦК)</b> — при кровопотере АД падает</li>
+    <li><b>Сопротивление сосудистой стенки</b> — закон Пуазейля: R ∝ 8ηL/πr⁴. <b>r⁴ — главный фактор!</b> Уменьшение радиуса вдвое → сопротивление растёт в 16 раз</li>
+    <li><b>(+1) Региональное перераспределение крови</b> — депо: печень, селезёнка, подкожная клетчатка, лёгкие (до 1200 мл)</li>
+  </ol>
+
+  <h3>4. Гемодинамические показатели в разных отделах</h3>
+  <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;">
+    <thead><tr style="background:rgba(255,255,255,0.07);">
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Отдел</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Давление</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Суммарная площадь</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Линейная скорость</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Аорта</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">120/80 мм рт.ст.</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Малая</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">0,5 м/с</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Артериолы</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Максимальное падение</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Растёт</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Падает</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Капилляры</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">20–40 мм рт.ст.</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Максимальная</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Минимальная (0,5 мм/с)</b></td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Вены</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Отрицательное (зависит от дыхания)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Падает</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Растёт</td></tr>
+    </tbody>
+  </table>
+  <p><em>Объёмная скорость кровотока (Q) — константа (замкнутая система).</em><br/>
+  ⚠️ <b>Воздушная эмболия</b> при ранениях шеи — из-за отрицательного давления в крупных венах воздух засасывается в кровоток.</p>
+
+  <h3>5. Регуляция тонуса сосудов</h3>
+  <h4>5.1 Нервная регуляция</h4>
+  <ul>
+    <li><b>Симпатическая система</b> — преимущественно <b>сосудосуживающее</b> влияние (норадреналин → α-адренорецепторы). Доказано опытом Клод Бернара: перерезка симп. нерва уха → ухо краснеет; раздражение → бледнеет</li>
+    <li><b>Парасимпатика</b> — иннервирует лишь несколько зон (половые органы, слюнные железы, сердце). Механизм: Ацх → эндотелий вырабатывает <b>NO (оксид азота)</b> → ↑цГМФ → ↓Ca²⁺ в ГМК → <b>расширение сосудов</b></li>
+  </ul>
+  <div style="background:rgba(0,242,254,0.05); border:1px solid rgba(0,242,254,0.2); border-radius:8px; padding:14px; margin:12px 0;">
+    <h4 style="margin:0 0 6px 0; color:var(--accent-cyan);">Клиническая связь NO и препараты</h4>
+    <ul style="margin:0; padding-left:18px;">
+      <li><b>Нитраты (нитроглицерин)</b> — доноры NO → расширяют сосуды сердца, купируют стенокардию</li>
+      <li><b>Силденафил (Виагра)</b> — блокирует фермент, разрушающий цГМФ → пролонгирует вазодилатацию в половых органах</li>
+    </ul>
+  </div>
+  <h4>5.2 Гуморальная регуляция: РААС</h4>
+  <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:8px; padding:14px; margin:12px 0;">
+    <p><b>Триггер:</b> ↓кровоток через почку или ↓Na в плазме</p>
+    <p><b>Цепочка:</b> Почка → <b>ренин</b> → ангиотензиноген (печень) → <b>АПФ</b> → <b>Ангиотензин-2 (AT2)</b></p>
+    <p><b>Эффекты AT2:</b></p>
+    <ul style="margin:4px 0 0 0; padding-left:18px;">
+      <li>Мощная <b>вазоконстрикция</b> → ↑АД</li>
+      <li>→ <b>Альдостерон</b> (кора надпочечника) → реабсорбция Na + вода → ↑ОЦК</li>
+      <li>Стимуляция <b>жажды</b>, улучшение памяти, двигательной активности</li>
+      <li>Усиление работы сердца</li>
+    </ul>
+    <p style="margin-top:10px;"><b>ИАПФ</b> (эналаприл, лизиноприл) — блокируют АПФ → AT2 не образуется → ↓АД. ПП: сухой кашель (↑брадикинин)</p>
+  </div>
+
+  <h3>6. Сердечный цикл (при ЧСС 70 уд/мин = 0,8 с)</h3>
+  <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;">
+    <thead><tr style="background:rgba(255,255,255,0.07);">
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Период / Фаза</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Длительность</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Клапаны</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Что происходит</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Систола предсердий</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">0,1 с</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">АВ-открыты, полулунные закрыты</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Дополнительная порция крови в желудочки</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Асинхронное сокр. (0,05 с)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);" rowspan="2">0,33 с<br/><b>(Систола Ж)</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">—</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Неодновременное возбуждение кардиомиоцитов</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Изометрическое сокр. (0,03 с)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>ВСЕ закрыты!</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Давление растёт при неизменном объёме (1-й тон сердца)</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Изгнание крови (0,25 с)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Полулунные <b>открыты</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Быстрое (0,12 с) + медленное (0,13 с) изгнание</td></tr>
+      <tr style="background:rgba(0,242,254,0.05);"><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);" colspan="4">
+        <b>Диастола Ж (0,47 с):</b> Протодиастола (0,04 с) → закрываются полулунные (2-й тон) → Изометрическое расслабление (0,08 с, все закрыты) → Наполнение кровью (0,25 с, быстрое+медленное) → Систола П → Общая пауза (0,37 с)
+      </td></tr>
+    </tbody>
+  </table>
+  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; flex:1; min-width:120px; text-align:center;">
+      <div style="font-size:11px; color:var(--text-dim);">КДО</div><div style="font-size:20px; color:var(--accent-cyan);">120 мл</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; flex:1; min-width:120px; text-align:center;">
+      <div style="font-size:11px; color:var(--text-dim);">УО (ударный объём)</div><div style="font-size:20px; color:var(--accent-cyan);">75 мл</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; flex:1; min-width:120px; text-align:center;">
+      <div style="font-size:11px; color:var(--text-dim);">КСО</div><div style="font-size:20px; color:var(--accent-cyan);">45 мл</div>
+    </div>
+  </div>
+
+  <h3>7. Особенности сердечной мышцы</h3>
+  <ul>
+    <li><b>Псевдосинцитий</b> — кардиомиоциты соединены нексусами, возбуждение распространяется во всех направлениях (опыт Энгельмана)</li>
+    <li><b>Закон «всё или ничего»</b> — ответ сердца на пороговый раздражитель всегда максимальный</li>
+    <li><b>Закон Франка–Старлинга</b> — сила сокращений прямо пропорциональна степени растяжения мышцы кровью (до определённого предела)</li>
+    <li><b>Автоматия (МДД)</b> — в СА-узле отсутствует потенциал покоя, вместо него — <b>медленная диастолическая деполяризация</b>: постепенное нарастание потенциала → достижение порога → спайк. Механизм: ↑вход Na⁺, ↓выход K⁺</li>
+    <li><b>Не способна к тетанусу</b> — рефрактерный период (0,33 с) = систоле желудочков → суммация невозможна</li>
+    <li><b>Градиент автоматии</b> (закон Гасла): СА-узел (60-80) > АВ-узел (40-50) > пучок Гиса > волокна Пуркинье (20-40)</li>
+  </ul>
+
+  <h3>8. Рефлексы сердца</h3>
+  <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;">
+    <thead><tr style="background:rgba(255,255,255,0.07);">
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Рефлекс</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Рецепторная зона</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Эффект</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Бейнбриджа</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Устья полых вен (растяжение)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">↑ работы желудочков (СИМПАТИЧЕСКИЙ)</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Барорецепторный</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Дуга аорты, бифуркация сонной артерии</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">↑АД → активация ядра вагуса → ↓ЧСС, ↓АД (ВАГУСНЫЙ)</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Данини–Ашнера</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Глазные яблоки</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">↓ЧСС (применяют при пароксизмальной тахикардии)</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Солярный</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Солнечное сплетение</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">↓ЧСС (ВАГУСНЫЙ)</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>Геринга</b> (дыхательный)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Стретч-рецепторы лёгких</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Дыхательная аритмия — НОРМА (вдох → тахи, выдох → бради)</td></tr>
+    </tbody>
+  </table>
+  <p>⚠️ <b>Барорецепторы и гипертония:</b> при хроническом ↑АД барорецепторы адаптируются и перестают «видеть» патологию → механизм саморегуляции выключается → гипертония прогрессирует.</p>
+
+  <h3>9. Основы ЭКГ</h3>
+  <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;">
+    <thead><tr style="background:rgba(255,255,255,0.07);">
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Зубец / комплекс</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Что отражает</th>
+      <th style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Патология</th>
+    </tr></thead>
+    <tbody>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>P</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Деполяризация предсердий</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Гипертрофия предсердий</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>QRS</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Деполяризация желудочков</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">↑R — гипертрофия Ж</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>T</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Реполяризация желудочков</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">«Кошачья спинка» ST↑ — острый инфаркт</td></tr>
+      <tr><td style="padding:8px; border:1px solid rgba(255,255,255,0.1);"><b>PQ (интервал)</b></td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">АВ-задержка (норма 0,12–0,20 с)</td>
+          <td style="padding:8px; border:1px solid rgba(255,255,255,0.1);">Удлинение — АВ-блокада</td></tr>
+    </tbody>
+  </table>
+  <p><b>Тоны сердца:</b> I тон (систолический, громкий) — захлопывание АВ-клапанов. II тон (диастолический, тихий) — захлопывание полулунных. III, IV тоны — ухом не слышны. Шумы — патология клапанов.</p>
+</div>
+      `
+    },
+
+    {
       id: "cvs_histology",
       systemId: "cardiovascular",
       subjectId: "histology",
