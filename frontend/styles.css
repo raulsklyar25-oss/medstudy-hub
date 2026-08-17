@@ -3991,3 +3991,141 @@ html {
     padding: 4px 8px;
   }
 }
+
+
+/* =============================================
+   FORCE ALL INLINE GRID OVERRIDES FOR MOBILE
+   ============================================= */
+@media (max-width: 900px) {
+  /* Profile page: 320px 1fr -> 1 col */
+  .profile-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Profile stats: 4 cols -> 2 cols */
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Profile achievements: 2 cols -> 1 col */
+  #profile-achievements-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Anatomy directory: 280px 1fr -> 1 col */
+  .anatomy-directory-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Quiz setup: 3 cols -> 1 col */
+  .quiz-setup-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Community: 280px 1fr -> 1 col */
+  .community-layout {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+  }
+
+  /* Lab layout: 1.2fr 1fr -> 1 col */
+  .lab-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Book reader: 280px 1fr -> 1 col */
+  .book-reader-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Forum layout */
+  .forum-layout {
+    max-width: 100% !important;
+  }
+
+  /* Avatar selector: 5 cols -> 5 cols is fine on mobile, but shrink */
+  #avatar-selector {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Dashboard stats row: 2 cols -> 1 col */
+  .view-viewport [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Any 2-col inline grids */
+  .view-viewport [style*="grid-template-columns: 2fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Any 6-col inline grids (like concept map categories) */
+  .view-viewport [style*="grid-template-columns: repeat(6"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Force all inline grids inside views to respect mobile */
+  .app-view [style*="grid-template-columns: 280px"] {
+    grid-template-columns: 1fr !important;
+  }
+  .app-view [style*="grid-template-columns: 320px"] {
+    grid-template-columns: 1fr !important;
+  }
+  .app-view [style*="grid-template-columns: 350px"] {
+    grid-template-columns: 1fr !important;
+  }
+  .app-view [style*="grid-template-columns: 1.2fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  .app-view [style*="grid-template-columns: 1.3fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  .app-view [style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+  .app-view [style*="grid-template-columns: repeat(4"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Community chat height */
+  .community-layout,
+  [class*="community"] {
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Ensure all panels have proper width */
+  .glass-panel,
+  .profile-card-sidebar,
+  .profile-stats-grid {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Profile stats: 2 cols -> 2 cols but smaller */
+  .profile-stats-grid {
+    gap: 8px !important;
+    padding: 16px !important;
+  }
+
+  /* 6-col -> 2 col on very small screens */
+  .app-view [style*="grid-template-columns: repeat(6"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Quiz setup: even more compact */
+  .quiz-setup-grid {
+    gap: 8px !important;
+  }
+
+  /* Community height */
+  .community-layout {
+    height: auto !important;
+  }
+}
