@@ -1689,32 +1689,6 @@ body {
   }
 }
 
-@media (max-width: 900px) {
-  .app-container {
-    grid-template-columns: 1fr;
-  }
-  .sidebar {
-    display: none; /* In a real app we'd build a burger menu, for our SPA dashboard we optimize for desktop/tablet */
-  }
-  .top-header {
-    padding: 15px 20px;
-  }
-  .search-bar {
-    width: 100%;
-  }
-  .dashboard-grid, .systems-grid, .subjects-grid, .cases-list-grid, .case-layout {
-    grid-template-columns: 1fr;
-  }
-  .flashcard-outer {
-    width: 100%;
-    max-width: 500px;
-    height: 300px;
-  }
-  .view-viewport {
-    padding: 20px;
-  }
-}
-
 /* --- INTERACTIVE 3D ANATOMY VIEW --- */
 .anatomy-layout {
   display: grid;
@@ -3225,12 +3199,11 @@ body {
   animation: flash 0.8s infinite alternate;
 }
 
-
 /* =============================================
-   MOBILE RESPONSIVE STYLES
+   MOBILE RESPONSIVE STYLES (COMPLETE)
    ============================================= */
 
-/* --- Hamburger Button (hidden on desktop) --- */
+/* --- Hamburger Button --- */
 .hamburger-btn {
   display: none;
   flex-direction: column;
@@ -3275,79 +3248,81 @@ body {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
   z-index: 99;
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 .sidebar-overlay.active {
   opacity: 1;
+  pointer-events: all;
 }
 
 /* =============================================
-   TABLET BREAKPOINT (≤ 900px)
+   TABLET BREAKPOINT (<= 900px)
    ============================================= */
 @media (max-width: 900px) {
 
-  /* Layout: stack sidebar behind main */
+  /* App container: 1 column, sidebar overlays */
   .app-container {
     grid-template-columns: 1fr;
     position: relative;
   }
 
-  /* Sidebar: slide in from left as overlay */
+  /* Sidebar slides in from left */
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    height: 100vh;
+    height: 100%;
     width: 280px;
     z-index: 100;
     transform: translateX(-100%);
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 4px 0 40px rgba(0, 0, 0, 0.6);
+    box-shadow: 6px 0 40px rgba(0, 0, 0, 0.7);
+    overflow-y: auto;
   }
   .sidebar.mobile-open {
     transform: translateX(0);
   }
 
-  /* Show overlay backdrop */
+  /* Show overlay */
   .sidebar-overlay {
     display: block;
   }
 
-  /* Main content takes full width */
+  /* Main takes full width */
   .main-content {
     width: 100%;
     height: 100vh;
   }
 
-  /* Show hamburger button */
+  /* Show hamburger */
   .hamburger-btn {
     display: flex;
   }
 
   /* Header compact */
   .top-header {
-    padding: 14px 16px;
+    padding: 12px 16px;
     gap: 12px;
   }
-
   .search-bar {
-    width: 100%;
     flex: 1;
     min-width: 0;
+    width: auto;
     padding: 9px 14px;
   }
-
   .header-stats {
     gap: 8px;
+    flex-shrink: 0;
   }
-
   .stat-badge {
-    padding: 7px 11px;
+    padding: 6px 10px;
     font-size: 12px;
+    gap: 5px;
   }
 
   /* Content padding */
@@ -3355,7 +3330,7 @@ body {
     padding: 20px 16px;
   }
 
-  /* Dashboard grid: 1 column */
+  /* Dashboard grid: single column */
   .dashboard-grid {
     grid-template-columns: 1fr;
     gap: 14px;
@@ -3364,7 +3339,7 @@ body {
     grid-column: span 1;
   }
 
-  /* Welcome banner: stack vertically */
+  /* Welcome banner stacks */
   .welcome-banner {
     flex-direction: column;
     align-items: flex-start;
@@ -3377,51 +3352,120 @@ body {
     width: 100%;
   }
   .w-stat {
-    min-width: unset;
     flex: 1;
-    padding: 12px 16px;
+    min-width: 100px;
+    padding: 12px 14px;
   }
 
   /* View header */
+  .view-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
   .view-header h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
 
-  /* Systems grid: 1 or 2 cols */
+  /* Systems / Subjects grids */
   .systems-grid,
   .subjects-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
-
-  /* Quick access cards on dashboard */
-  .quick-access-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px;
-  }
-
-  /* Flashcard area */
-  .flashcard-container {
-    padding: 20px;
-  }
-  .flashcard {
-    height: 240px;
-  }
-
-  /* Quiz layout */
-  .quiz-setup-panel,
-  .quiz-active-panel {
+  .system-card,
+  .subject-card {
     padding: 20px;
   }
 
-  /* Academic text tables: horizontal scroll */
+  /* Cases list */
+  .cases-list-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Active case workspace */
+  .case-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .chart-body {
+    max-height: 260px;
+  }
+  .active-case-workspace {
+    padding: 16px;
+  }
+
+  /* Workspace (study page) */
+  .system-workspace,
+  .subject-workspace {
+    padding: 16px;
+    gap: 16px;
+  }
+  .workspace-content {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .practice-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .practice-card {
+    flex: 1 1 260px;
+  }
+
+  /* Flashcard: fluid width */
+  .flashcard-outer {
+    width: 100%;
+    max-width: 100%;
+    height: 280px;
+  }
+  .flashcard-controls {
+    max-width: 100%;
+  }
+  .flashcard-side {
+    padding: 20px;
+  }
+
+  /* Quiz */
+  .quiz-active-window,
+  .quiz-results-window {
+    padding: 20px;
+  }
+  .quiz-question-title {
+    font-size: 17px;
+  }
+
+  /* Library */
+  .library-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .library-textbooks,
+  .library-upload {
+    padding: 20px;
+  }
+
+  /* Anatomy 3D */
+  .anatomy-layout {
+    grid-template-columns: 1fr;
+  }
+  .anatomy-visual {
+    padding: 16px;
+  }
+  .anatomy-details {
+    min-height: unset;
+    padding: 20px;
+  }
+
+  /* Academic tables: scroll horizontally */
   .academic-text table,
-  table.academic-table {
+  table.academic-table,
+  .theory-body-text table {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     white-space: nowrap;
-    font-size: 12px;
   }
   .academic-text table td,
   .academic-text table th,
@@ -3431,55 +3475,54 @@ body {
     min-width: 120px;
   }
 
-  /* Cards grid in anatomy */
-  .anatomy-cards-grid,
-  .organ-cards-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px;
-  }
-
-  /* Community/Chat panel */
-  .community-layout,
-  .chat-layout {
+  /* Community layout */
+  .community-panel,
+  [class*="community-layout"] {
     flex-direction: column !important;
   }
-  .friends-sidebar,
-  .chat-sidebar {
-    width: 100% !important;
-    max-height: 200px;
+
+  /* Quest */
+  .quest-layout {
+    padding: 20px;
+  }
+  .quest-game-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .quest-progress-bar {
+    width: 100%;
   }
 }
 
 /* =============================================
-   MOBILE BREAKPOINT (≤ 600px)
+   MOBILE BREAKPOINT (<= 600px)
    ============================================= */
 @media (max-width: 600px) {
 
-  /* Header: hide stats on very small screens */
+  /* Hide stats in header */
   .header-stats {
     display: none;
   }
-
   .top-header {
-    padding: 12px 14px;
+    padding: 11px 14px;
+    gap: 10px;
   }
-
-  /* Search bar full width */
   .search-bar {
-    width: 100%;
-    padding: 9px 12px;
+    padding: 8px 12px;
+  }
+  .search-bar input {
+    font-size: 13px;
   }
 
-  /* View padding */
+  /* Content */
   .view-viewport {
-    padding: 16px 12px;
+    padding: 14px 12px;
   }
 
-  /* Dashboard card smaller padding */
+  /* Dashboard */
   .dashboard-card {
     padding: 16px;
   }
-
   .welcome-banner {
     padding: 16px;
   }
@@ -3489,89 +3532,176 @@ body {
   .welcome-text p {
     font-size: 13px;
   }
-
-  /* Systems/Subjects: single column */
-  .systems-grid,
-  .subjects-grid,
-  .quick-access-grid,
-  .anatomy-cards-grid,
-  .organ-cards-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Stats row wraps */
-  .welcome-stats {
-    gap: 8px;
-  }
   .w-stat {
     flex: 1 1 45%;
   }
 
-  /* Flashcard */
-  .flashcard {
-    height: 200px;
-  }
-  .flashcard-front,
-  .flashcard-back {
-    padding: 20px;
-    font-size: 14px;
-  }
-
-  /* Quiz options: single column */
-  .quiz-options-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Lab table horizontal scroll */
-  .labs-reference-table,
-  .academic-text table,
-  table.academic-table {
-    font-size: 11px;
-  }
-
-  /* Clinical case */
-  .case-layout {
-    flex-direction: column !important;
-  }
-
-  /* View header */
+  /* View header stacks */
   .view-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
   }
   .view-header h2 {
     font-size: 18px;
   }
 
-  /* Profile grid */
-  .profile-grid {
+  /* Systems: single col */
+  .systems-grid,
+  .subjects-grid,
+  .cases-list-grid {
+    gap: 12px;
+  }
+  .system-card,
+  .subject-card {
+    padding: 16px;
+    gap: 10px;
+  }
+  .sys-icon,
+  .sub-icon {
+    font-size: 24px;
+  }
+  .card-title-row h3 {
+    font-size: 16px;
+  }
+
+  /* Flashcard */
+  .flashcard-outer {
+    height: 220px;
+  }
+  .flashcard-side {
+    padding: 16px;
+  }
+  #fc-question-text {
+    font-size: 15px;
+  }
+  #fc-answer-text {
+    font-size: 14px;
+  }
+
+  /* Quiz */
+  .quiz-active-window,
+  .quiz-results-window {
+    padding: 16px;
+    gap: 18px;
+  }
+  .quiz-question-title {
+    font-size: 15px;
+  }
+  .quiz-option-btn {
+    padding: 13px 16px;
+    font-size: 13px;
+  }
+  .results-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Cases */
+  .active-case-workspace {
+    padding: 12px;
+  }
+  .case-card {
+    padding: 16px;
+  }
+
+  /* Workspace */
+  .system-workspace,
+  .subject-workspace {
+    padding: 12px;
+  }
+  .workspace-title-block h3 {
+    font-size: 18px;
+  }
+  .ws-icon {
+    font-size: 28px;
+  }
+  #ws-topic-title {
+    font-size: 17px;
+  }
+
+  /* Library */
+  .library-textbooks,
+  .library-upload {
+    padding: 16px;
+  }
+
+  /* Anatomy */
+  .anatomy-details {
+    padding: 14px;
+  }
+  .organ-textbook-sheet {
+    padding: 14px;
+    max-height: 350px;
+  }
+
+  /* Academic text */
+  .academic-text,
+  .academic-text h2 {
+    font-size: 15px;
+  }
+  .academic-text h3 {
+    font-size: 14px;
+  }
+  .academic-text p,
+  .academic-text li {
+    font-size: 12.5px;
+  }
+
+  /* Tables font size */
+  .academic-text table td,
+  .academic-text table th,
+  table.academic-table td,
+  table.academic-table th {
+    font-size: 11px;
+    padding: 6px 8px;
+    min-width: 90px;
+  }
+
+  /* Quest */
+  .quest-layout {
+    padding: 14px;
+  }
+
+  /* Sidebar narrower */
+  .sidebar {
+    width: 260px;
+    padding: 20px 16px;
+  }
+
+  /* Lock screen */
+  .lock-card {
+    margin: 16px;
+    padding: 28px 18px;
+  }
+  .lock-icon {
+    font-size: 40px;
+  }
+  .lock-card h2 {
+    font-size: 20px;
+  }
+
+  /* Achievement toast */
+  .achievement-toast {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: 100%;
+  }
+
+  /* Profile */
+  .profile-section {
     grid-template-columns: 1fr !important;
   }
 
-  /* Concept map */
-  .concept-map-container {
-    height: 300px !important;
+  /* Concept map container */
+  .concept-map-outer {
+    height: 320px !important;
   }
 
-  /* Sidebar width slightly narrower */
-  .sidebar {
-    width: 260px;
-  }
-
-  /* Toast position */
-  .toast-container {
-    bottom: 80px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    right: auto !important;
-    width: 90vw;
-    max-width: 360px;
-  }
-
-  /* Lock screen card */
-  .lock-card {
-    margin: 20px;
-    padding: 30px 20px;
+  /* Make buttons full width in action rows */
+  .results-actions .btn,
+  .case-completed-panel .btn {
+    width: 100%;
   }
 }
